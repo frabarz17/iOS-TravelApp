@@ -13,131 +13,173 @@ L'app sostituisce la PWA TravelApp (in `~/claude/TravelApp`) con un'esperienza n
 | Fase | Descrizione | Stato |
 |---|---|---|
 | 0 | Setup progetto Expo + struttura cartelle | ✅ Completata |
-| 1 | Data model TypeScript + TripRepository | ⏳ Da fare |
-| 2 | Lista viaggi + creazione nuovo viaggio | ⏳ Da fare |
-| 3 | Viewer itinerario (giorni + eventi) | ⏳ Da fare |
-| 4 | Viewer mappa + metro + biglietti + info | ⏳ Da fare |
+| 1 | Data model TypeScript + TripRepository | ✅ Completata |
+| 2 | Lista viaggi + caricamento viaggio esempio (London 2026) | ✅ Completata |
+| 3 | Viewer itinerario (giorni + eventi + Guidami) | ✅ Completata |
+| 4 | Viewer mappa + metro + info (5 sottosezioni) + biglietti + PDF | ✅ Completata |
 | 5 | Editing inline per ogni sezione | ⏳ Da fare |
 | 6 | Export/Import JSON (collaborazione) | ⏳ Da fare |
-| 7 | Polish iOS + offline + PDF caching | ⏳ Da fare |
+| 7 | Polish iOS + offline + app icon | ⏳ Da fare |
 
 ## Stack tecnico
 
 | Componente | Tecnologia | Note |
 |---|---|---|
-| Framework | React Native + Expo 57 | React 19, RN 0.86 |
+| Framework | React Native + Expo 57 | React 19.2.3, RN 0.86.2 |
 | Navigazione | Expo Router (file-based) | Struttura in `src/app/` |
-| State | React Context + useState | No Redux |
-| Storage | `expo-file-system` | JSON locali in Documents |
-| Maps | `react-native-maps` | MapKit iOS nativo |
-| PDF | `expo-file-system` + `expo-sharing` | Apertura nativa |
-| Valute | fetch Frankfurter API | Fallback offline su rate locale |
-| Import/Export | `expo-document-picker` + `expo-sharing` | Per collaborazione |
-| Tipi | TypeScript strict | Interfacce in `src/types/` |
+| State | useState + props | No Redux, no Context globale |
+| Storage | `expo-file-system/legacy` | Subpath `/legacy` obbligatorio su SDK 57 |
+| Path constants | `import { Paths } from 'expo-file-system'` | `Paths.document.uri`, `Paths.cache.uri` |
+| PDF viewer | `react-native-webview` | WKWebView su iOS renderizza PDF nativo |
+| Mappe / SVG | `react-native-webview` | WebView per Google My Maps embed e mappa metro SVG |
+| PDF import | `expo-document-picker` | Picker nativo Files app |
+| PDF share | `expo-sharing` | Share sheet iOS |
+| Icone | `expo-symbols` | SF Symbols iOS-native |
+| Tipi | TypeScript strict | Interfacce in `src/types/trip.ts` |
 
-## Struttura file (target)
+## Struttura file
 
 ```
 iOS-TravelApp/
 ├── src/
-│   ├── app/                        ← Expo Router pages
-│   │   ├── _layout.tsx             ← Root layout
-│   │   ├── index.tsx               ← Lista viaggi (home)
-│   │   └── trip/
-│   │       ├── [id]/
-│   │       │   ├── _layout.tsx     ← Tab layout per il viaggio
-│   │       │   ├── itinerario.tsx  ← Giorni + eventi (viewer + edit)
-│   │       │   ├── mappa.tsx       ← Google My Maps embed + edit
-│   │       │   ├── metro.tsx       ← Immagine metro scrollabile + edit
-│   │       │   ├── info.tsx        ← Voli, valute, supermercati, pratiche
-│   │       │   └── biglietti.tsx   ← PDF biglietti + upload/edit
-│   ├── components/                 ← Componenti riusabili
-│   │   ├── trip/                   ← Componenti specifici per trip
-│   │   └── ui/                     ← Componenti UI generici
-│   ├── types/
-│   │   └── trip.ts                 ← Interfacce TypeScript (schema dati)
+│   ├── app/
+│   │   ├── _layout.tsx             ← Root Stack + ThemeProvider + SplashScreen
+│   │   ├── index.tsx               ← Lista viaggi, FAB +, footer importa London 2026
+│   │   └── trip/[id]/
+│   │       ├── _layout.tsx         ← 5 tab: Giorni · Mappa · Metro · Info · Biglietti
+│   │       ├── itinerario.tsx      ← Tab bar giorni, day card, timeline eventi, Guidami
+│   │       ├── mappa.tsx           ← WebView Google My Maps embed (mid=...)
+│   │       ├── metro.tsx           ← WebView SVG h:100vh scrollabile a dx/sx
+│   │       ├── info.tsx            ← 5 pill: Cambio · Voli · Supermercati · Info · Altro
+│   │       └── biglietti.tsx       ← Import PDF da Files, viewer inline WebView modal
 │   ├── repository/
-│   │   └── TripRepository.ts       ← Astrazione storage (locale oggi, cloud domani)
-│   ├── constants/
-│   │   └── theme.ts                ← Colori/font di default
-│   └── hooks/                      ← Custom hooks
-├── assets/                         ← Immagini, icone
-├── app.json                        ← Config Expo
-├── package.json
-└── CLAUDE.md
+│   │   └── TripRepository.ts       ← Singleton: CRUD JSON + getTicketUri
+│   ├── types/
+│   │   └── trip.ts                 ← Interfacce TypeScript (schema identico alla PWA)
+│   ├── hooks/
+│   │   └── use-theme.ts            ← Colori light/dark da useColorScheme
+│   └── constants/
+│       └── theme.ts                ← Colors, Spacing, FontSize
+├── assets/
+│   └── london-2026.json            ← Viaggio di esempio bundled (importato in index.tsx)
+└── app.json
 ```
 
-## Schema dati (trip.json)
+## Regole critiche — NON SBAGLIARE
 
-Lo schema è ereditato dalla PWA TravelApp — i JSON esistenti sono importabili direttamente. Le interfacce TypeScript stanno in `src/types/trip.ts`.
+### 1. useGlobalSearchParams nei tab screen
 
-Sezioni principali: `meta`, `hotel`, `flights`, `map`, `practicalInfo`, `markets`, `oyster`, `bookingChecklist`, `days[]`, `tickets[]`.
-
-Vedi `~/claude/TravelApp/trips/london-2026/trip.json` come esempio di riferimento completo.
-
-## Architettura dati: TripRepository
-
-**Regola fondamentale:** la UI non tocca mai `expo-file-system` direttamente. Passa sempre per `TripRepository`. Questo permette di cambiare il backend di storage (locale → iCloud Drive → GitHub) senza toccare i componenti.
+Tutti i file in `trip/[id]/` devono usare `useGlobalSearchParams`, **mai** `useLocalSearchParams`. I tab screen figli non vedono i parametri del segmento padre dinamico `[id]` con `useLocalSearchParams` — restituisce `undefined`.
 
 ```typescript
-// Uso corretto
-const repo = useTripRepository();
-await repo.saveTrip(trip);
+// ✅ Corretto
+const { id } = useGlobalSearchParams<{ id: string }>();
 
-// MAI direttamente
-await FileSystem.writeAsStringAsync(...); // ← non farlo nelle componenti
+// ❌ Sbagliato — id sarà undefined nei tab screen
+const { id } = useLocalSearchParams<{ id: string }>();
 ```
 
-## Navigazione: pattern Expo Router
+### 2. headerTitle nei tab screen (non title)
 
-- **Lista viaggi**: `src/app/index.tsx`
-- **Dettaglio viaggio**: `src/app/trip/[id]/_layout.tsx` con tab bottom bar
-- **Ogni sezione**: file separato in `src/app/trip/[id]/`
-- **Modali editing**: usare `expo-router` modal presentation
+In `navigation.setOptions()` dentro i tab screen usare `headerTitle`, **mai** `title`. `title` sovrascrive anche la label del tab bar (renderebbe tutti i tab "Londra 2026" invece di "Giorni", "Mappa", ecc.).
 
-## Editing inline: pattern
+```typescript
+// ✅ Aggiorna solo l'header
+navigation.setOptions({ headerTitle: trip.meta.name });
 
-Ogni schermata ha due modalità — viewer e editor — gestite con un flag locale:
+// ❌ Sovrascrive anche la label del tab bar
+navigation.setOptions({ title: trip.meta.name });
+```
+
+### 3. expo-file-system: subpath /legacy + Paths
+
+Su Expo SDK 57 `documentDirectory` e `cacheDirectory` non sono più esportati dal modulo principale.
+
+```typescript
+// ✅ Operazioni su file
+import * as FileSystem from 'expo-file-system/legacy';
+
+// ✅ Path constants
+import { Paths } from 'expo-file-system';
+const TRIPS_DIR = `${Paths.document.uri}trips/`;
+const tempPath = `${Paths.cache.uri}export.json`;
+
+// ❌ Non funziona su SDK 57
+import * as FileSystem from 'expo-file-system';
+FileSystem.documentDirectory // → undefined
+```
+
+### 4. JSON assets: path relativo, non alias @/
+
+Metro bundler non risolve l'alias `@/assets/` per i file JSON.
+
+```typescript
+// ✅ Path relativo da src/app/index.tsx
+import londonData from '../../assets/london-2026.json';
+
+// ❌ Metro non lo risolve
+import londonData from '@/assets/london-2026.json';
+```
+
+### 5. Moduli nativi: rebuild obbligatorio
+
+`react-native-webview` e `expo-document-picker` sono moduli nativi. Dopo l'installazione:
+
+```bash
+npx expo start --clear
+```
+
+Senza `--clear` Expo Go non carica i nuovi moduli nativi.
+
+### 6. Nessun backend esterno
+
+L'app è completamente autonoma. Non chiamare GitHub API, Vercel, o altri servizi per i dati del viaggio. L'unica API esterna ammessa è Frankfurter (tassi di cambio).
+
+### 7. TripRepository è l'unico accesso allo storage
+
+La UI non chiama mai `expo-file-system` direttamente. Tutto passa per `tripRepository`.
+
+## Architettura navigazione
+
+```
+Stack (root)
+└── Tabs (trip/[id]/_layout.tsx)
+    ├── itinerario   → "Giorni"
+    ├── mappa        → "Mappa"    (WebView Google My Maps)
+    ├── metro        → "Metro"    (WebView SVG)
+    ├── info         → "Info"     (pill nav interna: Cambio/Voli/Supermercati/Info/Altro)
+    └── biglietti    → "Biglietti" (import PDF + modal viewer)
+```
+
+Il tab layout ha un `headerLeft` con pulsante `← chevron.left` per tornare alla lista viaggi (lo swipe back non funziona con i Tabs che assorbono i gesti orizzontali).
+
+## Editing inline (Fase 5 — da implementare)
+
+Pattern da seguire per ogni schermata:
 
 ```typescript
 const [isEditing, setIsEditing] = useState(false);
-// Header right: tasto "Modifica" / "Fine"
-// In viewer: componenti di sola lettura
-// In editor: TextInput, DatePicker, ecc.
+// Header right: "Modifica" → setIsEditing(true) / "Fine" → salva + setIsEditing(false)
+// Viewer: componenti di sola lettura
+// Editor: TextInput, DatePicker, sheet modal per form complesse
+// Salvataggio: tripRepository.saveTrip(updatedTrip) al tap "Fine"
 ```
-
-Il salvataggio avviene al tap "Fine" (non live): chiama `tripRepository.saveTrip(updatedTrip)`.
-
-## Regole critiche
-
-### 1. Nessun backend esterno
-L'app è completamente autonoma. Non chiamare GitHub API, Vercel, o altri servizi esterni per i dati del viaggio. L'unica API esterna ammessa per i dati è Frankfurter (tassi di cambio valuta).
-
-### 2. TripRepository è l'unico accesso allo storage
-Vedi sezione "Architettura dati" sopra.
-
-### 3. TypeScript strict
-Tutti i file sono `.tsx`/`.ts`. Nessun `any` implicito. Le interfacce del trip stanno in `src/types/trip.ts` e devono essere aggiornate se si aggiunge un campo.
-
-### 4. Safe area
-Usare sempre `useSafeAreaInsets()` o `<SafeAreaView>` per gestire notch e Dynamic Island. Non hardcodare padding/margin top.
-
-### 5. Expo SDK 57
-Usare solo package compatibili con Expo SDK 57. Verificare su https://docs.expo.dev/versions/v57.0.0/ prima di aggiungere dipendenze.
 
 ## Testing
 
 ```bash
 cd /Users/francescobarzano/claude/iOS-TravelApp
-npx expo start
-# Scansiona il QR code con Expo Go (iPhone) per vedere l'app sul device
-# oppure premi 'i' per aprire nel simulatore iOS (richiede Xcode)
+npx expo start          # QR code → Expo Go su iPhone
+npx expo start --clear  # dopo installazione di moduli nativi
+
+# TypeScript check
+./node_modules/.bin/tsc --noEmit -p tsconfig.json
 ```
 
 ## Git
 
 ```bash
-git add src/ assets/ app.json package.json
+git add src/ assets/ app.json package.json package-lock.json
 git commit -m "descrizione"
 git push  # repo: github.com/frabarz17/iOS-TravelApp
 ```
@@ -146,5 +188,4 @@ git push  # repo: github.com/frabarz17/iOS-TravelApp
 
 - PWA originale (schema dati + logica business): `~/claude/TravelApp/`
 - Dati viaggio di esempio: `~/claude/TravelApp/trips/london-2026/trip.json`
-- Piano architetturale: `~/.claude/plans/vorrei-valutare-con-te-playful-dusk.md`
-- Expo SDK 57 docs: https://docs.expo.dev/versions/v57.0.0/
+- Schema dati TypeScript: `src/types/trip.ts`

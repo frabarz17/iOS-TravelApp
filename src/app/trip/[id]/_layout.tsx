@@ -20,6 +20,7 @@ export default function TripLayout() {
         tabBarActiveTintColor: '#007AFF',
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: { backgroundColor: colors.background },
+        tabBarLabelStyle: { fontSize: 10 },
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
         headerShadowVisible: false,
@@ -29,18 +30,9 @@ export default function TripLayout() {
       <Tabs.Screen
         name="itinerario"
         options={{
-          title: 'Itinerario',
+          title: 'Giorni',
           tabBarIcon: ({ color, size }) => (
             <SymbolView name="calendar" size={size} tintColor={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="info"
-        options={{
-          title: 'Info',
-          tabBarIcon: ({ color, size }) => (
-            <SymbolView name="airplane" size={size} tintColor={color} />
           ),
         }}
       />
@@ -50,6 +42,24 @@ export default function TripLayout() {
           title: 'Mappa',
           tabBarIcon: ({ color, size }) => (
             <SymbolView name="map" size={size} tintColor={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="metro"
+        options={{
+          title: 'Metro',
+          tabBarIcon: ({ color, size }) => (
+            <SymbolView name="tram" size={size} tintColor={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="info"
+        options={{
+          title: 'Info',
+          tabBarIcon: ({ color, size }) => (
+            <SymbolView name="info.circle" size={size} tintColor={color} />
           ),
         }}
       />

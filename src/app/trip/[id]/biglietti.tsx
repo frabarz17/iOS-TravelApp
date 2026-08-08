@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGlobalSearchParams, useNavigation } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import { WebView } from 'react-native-webview';
 
 import { tripRepository } from '@/repository/TripRepository';
 import { Ticket, Trip } from '@/types/trip';
@@ -17,27 +26,16 @@ export default function BigliettiScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [trip, setTrip] = useState<Trip | null>(null);
+  const [viewingUri, setViewingUri] = useState<string | null>(null);
 
   useEffect(() => {
     tripRepository.getTrip(id).then((t) => {
       setTrip(t);
-      if (t) navigation.setOptions({ title: t.meta.name });
+      if (t) navigation.setOptions({ headerTitle: t.meta.name });
     });
   }, [id]);
 
   if (!trip) return null;
-
-  const openPdf = async (ticket: Ticket) => {
-    const uri = tripRepository.getTicketUri(id, ticket.pdfPath);
-    const info = await FileSystem.getInfoAsync(uri);
-    if (!info.exists) {
-      return;
-    }
-    const canShare = await Sharing.isAvailableAsync();
-    if (canShare) {
-      await Sharing.shareAsync(uri, { mimeType: 'application/pdf' });
-    }
-  };
 
   const tickets = trip.tickets;
 
@@ -54,20 +52,48 @@ export default function BigliettiScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + Spacing.four }]}
-    >
-      {tickets.map((ticket, i) => (
-        <TicketCard
-          key={i}
-          ticket={ticket}
-          theme={theme}
-          tripId={id}
-          onOpen={() => openPdf(ticket)}
-        />
-      ))}
-    </ScrollView>
+    <>
+      <ScrollView
+        style={{ backgroundColor: theme.background }}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + Spacing.four }]}
+      >
+        {tickets.map((ticket, i) => (
+          <TicketCard
+            key={i}
+            ticket={ticket}
+            theme={theme}
+            tripId={id}
+            onOpen={(uri) => setViewingUri(uri)}
+          />
+        ))}
+      </ScrollView>
+
+      {/* PDF viewer modal — inline, senza uscire dall'app */}
+      <Modal
+        visible={!!viewingUri}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setViewingUri(null)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Pressable onPress={() => setViewingUri(null)} style={styles.closeBtn}>
+              <SymbolView name="xmark.circle.fill" size={28} tintColor="#8E8E93" />
+            </Pressable>
+          </View>
+          {viewingUri && (
+            <WebView
+              source={{ uri: viewingUri }}
+              style={styles.pdfViewer}
+              originWhitelist={['file://*', 'http://*', 'https://*']}
+              allowFileAccess
+              allowFileAccessFromFileURLs
+              allowUniversalAccessFromFileURLs
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
+    </>
   );
 }
 
@@ -80,14 +106,30 @@ function TicketCard({
   ticket: Ticket;
   theme: ReturnType<typeof import('@/hooks/use-theme').useTheme>;
   tripId: string;
-  onOpen: () => void;
+  onOpen: (uri: string) => void;
 }) {
-  const [pdfExists, setPdfExists] = useState(false);
+  const [pdfUri, setPdfUri] = useState<string | null>(null);
+  const localUri = tripRepository.getTicketUri(tripId, ticket.pdfPath);
 
   useEffect(() => {
-    const uri = tripRepository.getTicketUri(tripId, ticket.pdfPath);
-    FileSystem.getInfoAsync(uri).then((info) => setPdfExists(info.exists));
-  }, [tripId, ticket.pdfPath]);
+    FileSystem.getInfoAsync(localUri).then((info) => {
+      if (info.exists) setPdfUri(localUri);
+    });
+  }, [localUri]);
+
+  const importPdf = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'application/pdf',
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled) return;
+
+    const picked = result.assets[0].uri;
+    const dir = localUri.substring(0, localUri.lastIndexOf('/'));
+    await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+    await FileSystem.copyAsync({ from: picked, to: localUri });
+    setPdfUri(localUri);
+  };
 
   return (
     <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
@@ -114,18 +156,17 @@ function TicketCard({
         </View>
       </View>
 
-      <Pressable
-        onPress={onOpen}
-        style={[
-          styles.pdfBtn,
-          { backgroundColor: pdfExists ? '#EFF6FF' : theme.background, opacity: pdfExists ? 1 : 0.4 },
-        ]}
-      >
-        <SymbolView name="doc.fill" size={14} tintColor={pdfExists ? '#007AFF' : theme.textSecondary} />
-        <Text style={[styles.pdfBtnText, { color: pdfExists ? '#007AFF' : theme.textSecondary }]}>
-          {pdfExists ? 'Apri PDF' : 'PDF non disponibile'}
-        </Text>
-      </Pressable>
+      {pdfUri ? (
+        <Pressable onPress={() => onOpen(pdfUri)} style={styles.pdfBtn}>
+          <SymbolView name="doc.fill" size={14} tintColor="#007AFF" />
+          <Text style={styles.pdfBtnText}>Apri PDF</Text>
+        </Pressable>
+      ) : (
+        <Pressable onPress={importPdf} style={styles.importBtn}>
+          <SymbolView name="arrow.down.doc.fill" size={14} tintColor="#34C759" />
+          <Text style={styles.importBtnText}>Collega PDF da Files</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -189,20 +230,45 @@ const styles = StyleSheet.create({
     color: '#92400E',
     letterSpacing: 0.5,
   },
-  dayLabel: {
-    fontSize: 13,
-  },
+  dayLabel: { fontSize: 13 },
+
   pdfBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
+    backgroundColor: '#EFF6FF',
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: 12,
   },
-  pdfBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
+  pdfBtnText: { fontSize: 13, fontWeight: '600', color: '#007AFF' },
+
+  importBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: '#F0FFF4',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  importBtnText: { fontSize: 13, fontWeight: '600', color: '#34C759' },
+
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: Spacing.two,
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  pdfViewer: {
+    flex: 1,
   },
 });

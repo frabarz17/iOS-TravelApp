@@ -1,11 +1,19 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGlobalSearchParams, useNavigation } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
 import { tripRepository } from '@/repository/TripRepository';
-import { Trip, TripEvent } from '@/types/trip';
+import { Trip, TripDay, TripEvent } from '@/types/trip';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -15,15 +23,33 @@ export default function ItinerarioScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const tabScrollRef = useRef<ScrollView>(null);
+  const loading = trip === null;
 
   useEffect(() => {
     tripRepository.getTrip(id).then((t) => {
+      if (!t) return;
       setTrip(t);
-      if (t) navigation.setOptions({ title: t.meta.name });
-      setLoading(false);
+      navigation.setOptions({ headerTitle: t.meta.name });
+
+      // auto-seleziona il giorno corrente
+      const today = new Date().toISOString().slice(0, 10);
+      const idx = t.days.findIndex((d) => d.date === today);
+      setSelectedIdx(idx >= 0 ? idx : 0);
     });
   }, [id]);
+
+  // scrolla il tab bar sul giorno selezionato
+  useEffect(() => {
+    if (!trip) return;
+    // ogni tab è circa 64px di larghezza
+    const TAB_WIDTH = 64;
+    tabScrollRef.current?.scrollTo({
+      x: Math.max(0, selectedIdx * TAB_WIDTH - 120),
+      animated: true,
+    });
+  }, [selectedIdx, trip]);
 
   if (loading) {
     return (
@@ -33,16 +59,7 @@ export default function ItinerarioScreen() {
     );
   }
 
-  if (!trip) {
-    return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <SymbolView name="exclamationmark.triangle" size={48} tintColor={theme.textSecondary} />
-        <Text style={[styles.centerText, { color: theme.textSecondary }]}>Viaggio non trovato</Text>
-      </View>
-    );
-  }
-
-  if (trip.days.length === 0) {
+  if (!trip || trip.days.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <SymbolView name="calendar.badge.plus" size={48} tintColor={theme.textSecondary} />
@@ -54,60 +71,109 @@ export default function ItinerarioScreen() {
     );
   }
 
+  const day = trip.days[selectedIdx];
+  const primary = trip.meta.theme.primary;
+
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + Spacing.four }]}
-    >
-      {trip.days.map((day) => (
-        <View key={day.n} style={[styles.dayCard, { backgroundColor: theme.backgroundElement }]}>
-          <View style={styles.dayHeader}>
-            <Text style={[styles.dayNumber, { color: dayNumberColor(day.style) }]}>
-              Giorno {day.n}
-            </Text>
-            <Text style={[styles.dayDate, { color: theme.textSecondary }]}>{day.dateLabel}</Text>
-          </View>
-          <Text style={[styles.dayTitle, { color: theme.text }]}>{day.title}</Text>
-          {day.subtitle ? (
-            <Text style={[styles.daySubtitle, { color: theme.textSecondary }]}>{day.subtitle}</Text>
-          ) : null}
-          {day.badges.length > 0 && (
-            <View style={styles.badgeRow}>
-              {day.badges.map((b, i) => (
-                <View key={i} style={[styles.badge, { backgroundColor: badgeBg(b.color) }]}>
-                  <Text style={[styles.badgeText, { color: badgeFg(b.color) }]}>{b.text}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-          {day.events.length > 0 && (
-            <View style={styles.events}>
-              {day.events.map((ev, i) => (
-                <EventRow key={i} event={ev} theme={theme} />
-              ))}
-            </View>
-          )}
-        </View>
-      ))}
-    </ScrollView>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Tab giorni */}
+      <ScrollView
+        ref={tabScrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={[styles.tabBar, { borderBottomColor: theme.backgroundElement }]}
+        contentContainerStyle={styles.tabBarContent}
+      >
+        {trip.days.map((d, i) => {
+          const active = i === selectedIdx;
+          const color = active ? primary : theme.textSecondary;
+          return (
+            <Pressable key={i} onPress={() => setSelectedIdx(i)} style={styles.tab}>
+              <Text style={[styles.tabDayN, { color }]}>G{d.n}</Text>
+              <Text style={[styles.tabDate, { color }]}>{d.dateLabel}</Text>
+              {active && <View style={[styles.tabIndicator, { backgroundColor: primary }]} />}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* Contenuto giorno selezionato */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.dayContent, { paddingBottom: insets.bottom + Spacing.four }]}
+      >
+        <DayCard day={day} theme={theme} />
+      </ScrollView>
+    </View>
   );
 }
 
-function EventRow({ event, theme }: { event: TripEvent; theme: ReturnType<typeof import('@/hooks/use-theme').useTheme> }) {
+function DayCard({ day, theme }: { day: TripDay; theme: ReturnType<typeof import('@/hooks/use-theme').useTheme> }) {
+  return (
+    <View style={styles.dayCard}>
+      {/* Intestazione giorno */}
+      <View style={[styles.dayHeader, { backgroundColor: theme.backgroundElement }]}>
+        <Text style={[styles.dayTitle, { color: theme.text }]}>{day.title}</Text>
+        {day.subtitle ? (
+          <Text style={[styles.daySubtitle, { color: theme.textSecondary }]}>{day.subtitle}</Text>
+        ) : null}
+        {day.zone ? (
+          <View style={styles.zoneRow}>
+            <SymbolView name="location.fill" size={12} tintColor={theme.textSecondary} />
+            <Text style={[styles.zone, { color: theme.textSecondary }]}>{day.zone}</Text>
+          </View>
+        ) : null}
+        {day.badges.length > 0 && (
+          <View style={styles.badgeRow}>
+            {day.badges.map((b, i) => (
+              <View key={i} style={[styles.badge, { backgroundColor: badgeBg(b.color) }]}>
+                <Text style={[styles.badgeText, { color: badgeFg(b.color) }]}>{b.text}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Timeline eventi */}
+      {day.events.map((ev, i) => (
+        <EventRow key={i} event={ev} theme={theme} isLast={i === day.events.length - 1} />
+      ))}
+
+      {/* Note giorno */}
+      {day.dayDescription ? (
+        <View style={[styles.noteBox, { backgroundColor: theme.backgroundElement }]}>
+          <Text style={[styles.noteText, { color: theme.textSecondary }]}>{day.dayDescription}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function EventRow({
+  event,
+  theme,
+  isLast,
+}: {
+  event: TripEvent;
+  theme: ReturnType<typeof import('@/hooks/use-theme').useTheme>;
+  isLast: boolean;
+}) {
   const openMaps = () => {
-    const encoded = encodeURIComponent(event.placeGuide ?? '');
-    Linking.openURL(`maps:?q=${encoded}`);
+    Linking.openURL(`maps:?q=${encodeURIComponent(event.placeGuide ?? '')}`);
   };
 
   return (
-    <View style={[styles.eventRow, { borderTopColor: theme.backgroundElement }]}>
-      <View style={[styles.eventDot, { backgroundColor: dotColor(event.type) }]} />
-      <View style={styles.eventContent}>
+    <View style={[styles.eventRow, { backgroundColor: theme.backgroundElement }]}>
+      <View style={styles.eventLeft}>
+        <View style={[styles.dot, { backgroundColor: dotColor(event.type) }]} />
+        {!isLast && <View style={[styles.line, { backgroundColor: theme.backgroundElement }]} />}
+      </View>
+      <View style={styles.eventBody}>
         <View style={styles.eventTopRow}>
           <Text style={[styles.eventTime, { color: theme.textSecondary }]}>{event.time}</Text>
           {event.type === 'booked' && event.showBookingBadge !== false && (
             <View style={styles.bookedBadge}>
-              <Text style={styles.bookedBadgeText}>✓ Prenotato</Text>
+              <Text style={styles.bookedText}>✓ Prenotato</Text>
             </View>
           )}
         </View>
@@ -116,12 +182,12 @@ function EventRow({ event, theme }: { event: TripEvent; theme: ReturnType<typeof
           <Text style={[styles.eventDesc, { color: theme.textSecondary }]}>{event.description}</Text>
         ) : null}
         {event.tip ? (
-          <View style={styles.tipRow}>
+          <View style={styles.tipBox}>
             <Text style={styles.tipText}>💡 {event.tip}</Text>
           </View>
         ) : null}
         {event.alert ? (
-          <View style={styles.alertRow}>
+          <View style={styles.alertBox}>
             <Text style={styles.alertText}>⚠️ {event.alert}</Text>
           </View>
         ) : null}
@@ -136,20 +202,13 @@ function EventRow({ event, theme }: { event: TripEvent; theme: ReturnType<typeof
   );
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function dotColor(type: string): string {
   switch (type) {
     case 'booked': return '#C8102E';
     case 'meal': return '#C5A028';
     case 'logistics': return '#6B6B6B';
-    default: return '#012169';
-  }
-}
-
-function dayNumberColor(style: string): string {
-  switch (style) {
-    case 'special': return '#C8102E';
-    case 'gold': return '#C5A028';
-    case 'last': return '#444444';
     default: return '#012169';
   }
 }
@@ -172,7 +231,10 @@ function badgeFg(color: string): string {
   }
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
+  container: { flex: 1 },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -182,43 +244,75 @@ const styles = StyleSheet.create({
   },
   centerTitle: { fontSize: 20, fontWeight: '600' },
   centerText: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
-  list: {
+
+  // Tab bar
+  tabBar: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexGrow: 0,
+  },
+  tabBarContent: {
+    paddingHorizontal: Spacing.two,
+  },
+  tab: {
+    width: 64,
+    alignItems: 'center',
+    paddingVertical: Spacing.two,
+    gap: 2,
+    position: 'relative',
+  },
+  tabDayN: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  tabDate: {
+    fontSize: 10,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 8,
+    right: 8,
+    height: 2,
+    borderRadius: 1,
+  },
+
+  // Day content
+  dayContent: {
     padding: Spacing.three,
-    gap: Spacing.three,
+    gap: Spacing.two,
   },
   dayCard: {
-    borderRadius: 16,
-    padding: Spacing.three,
+    gap: Spacing.two,
   },
   dayHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  dayNumber: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  dayDate: {
-    fontSize: 12,
-    fontWeight: '600',
+    borderRadius: 16,
+    padding: Spacing.three,
+    gap: Spacing.one,
   },
   dayTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
   },
   daySubtitle: {
     fontSize: 14,
     marginTop: 2,
   },
+  zoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  zone: {
+    fontSize: 13,
+  },
   badgeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: Spacing.two,
+    marginTop: Spacing.one,
   },
   badge: {
     paddingHorizontal: 8,
@@ -229,28 +323,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  events: {
-    marginTop: Spacing.two,
-    gap: 0,
-  },
+
+  // Timeline
   eventRow: {
     flexDirection: 'row',
-    gap: Spacing.two,
-    paddingTop: Spacing.two,
-    paddingBottom: 2,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.07)',
-    marginTop: Spacing.two,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
-  eventDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 5,
+  eventLeft: {
+    width: 32,
+    alignItems: 'center',
+    paddingTop: Spacing.three,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     flexShrink: 0,
   },
-  eventContent: {
+  line: {
+    width: 2,
     flex: 1,
+    marginTop: 4,
+    opacity: 0.3,
+  },
+  eventBody: {
+    flex: 1,
+    padding: Spacing.three,
+    paddingLeft: Spacing.two,
     gap: 4,
   },
   eventTopRow: {
@@ -268,36 +368,34 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
   },
-  bookedBadgeText: {
+  bookedText: {
     fontSize: 11,
     fontWeight: '600',
     color: '#991B1B',
   },
   eventName: {
-    fontSize: 15,
-    fontWeight: '600',
-    lineHeight: 20,
+    fontSize: 16,
+    fontWeight: '700',
+    lineHeight: 21,
   },
   eventDesc: {
     fontSize: 13,
     lineHeight: 18,
   },
-  tipRow: {
+  tipBox: {
     backgroundColor: '#FFFBEB',
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    padding: 8,
   },
   tipText: {
     fontSize: 12,
     color: '#92400E',
     lineHeight: 17,
   },
-  alertRow: {
+  alertBox: {
     backgroundColor: '#FEF2F2',
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    padding: 8,
   },
   alertText: {
     fontSize: 12,
@@ -309,7 +407,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     alignSelf: 'flex-start',
-    paddingVertical: 4,
+    paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 12,
     backgroundColor: '#EFF6FF',
@@ -319,5 +417,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#007AFF',
+  },
+  noteBox: {
+    borderRadius: 12,
+    padding: Spacing.three,
+  },
+  noteText: {
+    fontSize: 13,
+    lineHeight: 19,
   },
 });
