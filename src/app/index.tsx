@@ -5,9 +5,12 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
 import { tripRepository } from '@/repository/TripRepository';
-import { TripSummary } from '@/types/trip';
+import { Trip, TripSummary } from '@/types/trip';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
+import londonTripJson from '../../assets/london-2026.json';
+
+const londonTrip = londonTripJson as unknown as Trip;
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -34,6 +37,11 @@ export default function HomeScreen() {
     const trip = tripRepository.createEmpty(id);
     await tripRepository.saveTrip(trip);
     router.push(`/trip/${id}/itinerario`);
+  };
+
+  const handleLoadSample = async () => {
+    await tripRepository.saveTrip(londonTrip);
+    loadTrips();
   };
 
   const handleDeleteTrip = (id: string, name: string) => {
@@ -99,13 +107,26 @@ export default function HomeScreen() {
               <SymbolView name="airplane" size={56} tintColor={theme.textSecondary} />
               <Text style={[styles.emptyTitle, { color: theme.text }]}>Nessun viaggio</Text>
               <Text style={[styles.emptyHint, { color: theme.textSecondary }]}>
-                Tappa + per creare il tuo primo viaggio
+                Tappa + per creare il tuo primo viaggio{'\n'}o usa ↓ per caricare l'esempio
               </Text>
             </View>
           ) : null
         }
         onRefresh={loadTrips}
         refreshing={loading}
+        ListFooterComponent={
+          !trips.some((t) => t.id === 'london-2026') ? (
+            <Pressable
+              onPress={handleLoadSample}
+              style={[styles.sampleRow, { borderColor: theme.backgroundElement }]}
+            >
+              <Text style={styles.sampleFlag}>🇬🇧</Text>
+              <Text style={[styles.sampleText, { color: theme.textSecondary }]}>
+                Carica viaggio di esempio (London 2026)
+              </Text>
+            </Pressable>
+          ) : null
+        }
       />
 
       <Pressable
@@ -139,6 +160,9 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: '700',
     letterSpacing: 0.4,
+  },
+  importButton: {
+    padding: Spacing.one,
   },
   list: {
     paddingHorizontal: Spacing.three,
@@ -185,6 +209,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  sampleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    marginTop: Spacing.three,
+    marginHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  sampleFlag: {
+    fontSize: 20,
+  },
+  sampleText: {
+    fontSize: 14,
   },
   fab: {
     position: 'absolute',

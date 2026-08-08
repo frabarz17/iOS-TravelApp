@@ -1,0 +1,778 @@
+{
+  "meta": {
+    "id": "london-2026",
+    "name": "Londra 2026",
+    "subtitle": "Il Nostro Viaggio",
+    "destination": "London",
+    "country": "United Kingdom",
+    "flag": "🇬🇧",
+    "startDate": "2026-07-29",
+    "endDate": "2026-08-06",
+    "travelers": { "adults": 2, "children": [7, 9] },
+    "theme": {
+      "primary": "#012169",
+      "accent": "#C8102E",
+      "gold": "#C5A028"
+    },
+    "currency": {
+      "local": { "code": "GBP", "flag": "🇬🇧", "label": "Sterline" },
+      "home":  { "code": "EUR", "flag": "🇪🇺", "label": "Euro" },
+      "fallbackRate": 1.17,
+      "quickAmounts": [5, 10, 20, 50]
+    },
+    "language": "it"
+  },
+
+  "hotel": {
+    "name": "K Hotel Kensington",
+    "address": "Courtfield Gardens, London SW5",
+    "zone": "Kensington",
+    "landmarks": [
+      { "name": "Science Museum", "distanceMin": 5 },
+      { "name": "Natural History Museum", "distanceMin": 10 }
+    ]
+  },
+
+  "flights": {
+    "outbound": {
+      "flightNumber": "EZY8304",
+      "airline": "easyJet",
+      "date": "2026-07-29",
+      "from": { "iata": "MXP", "terminal": "Terminal 2", "time": "10:30" },
+      "to":   { "iata": "LGW", "terminal": "Terminal Nord", "time": "11:30" },
+      "duration": "~2h",
+      "trackingUrl": "https://www.flightradar24.com/data/flights/ezy8304",
+      "checklist": [
+        { "badge": "Adesso",  "badgeStyle": "blue",  "text": "Check-in online aperto! Fate subito il check-in su EasyJet app e scegliete i posti per stare tutti vicini" },
+        { "badge": "D-1",    "badgeStyle": "blue",  "text": "Scaricate la carta d'imbarco su Apple Wallet o app EasyJet. Risparmio di tempo in aeroporto" },
+        { "badge": "08:00",  "badgeStyle": "gold",  "text": "Essere a MXP Terminal 2 — almeno 2h30 prima con bambini e valigie" },
+        { "badge": "08:30",  "badgeStyle": "red",   "text": "Check-in online chiude 2h prima della partenza — se non fatto, farsi in aeroporto" },
+        { "badge": "09:50",  "badgeStyle": "red",   "text": "Bag drop chiude — 40 min prima. Tassativo, non oltre" },
+        { "badge": "10:00",  "badgeStyle": "red",   "text": "Gate si chiude — 30 min prima · Buon volo! ✈" }
+      ],
+      "checklistTitle": "🧳 Checklist andata — con bagagli da imbarcare"
+    },
+    "return": {
+      "flightNumber": "EJU8149",
+      "airline": "easyJet",
+      "date": "2026-08-06",
+      "from": { "iata": "LGW", "terminal": "Terminal Nord", "time": "15:45" },
+      "to":   { "iata": "MXP", "terminal": "Terminal 2", "time": "18:45" },
+      "duration": "~2h",
+      "trackingUrl": "https://www.flightradar24.com/data/flights/eju8149",
+      "checklist": [
+        { "badge": "11:00",  "badgeStyle": "blue",  "text": "Check-out hotel. Lasciate le valigie in reception e godetevi la mattina libera" },
+        { "badge": "12:00",  "badgeStyle": "gold",  "text": "Ritirare i bagagli e partire verso Gatwick" },
+        { "badge": "Opz. A", "badgeStyle": "muted", "text": "Taxi/Uber (consigliato con bimbi+bagagli): porta a porta ~75 min, ca. £80–100. Partire alle 12:00" },
+        { "badge": "Opz. B", "badgeStyle": "muted", "text": "Tube+Treno: Gloucester Rd → Victoria (8 min) + Gatwick Express (30 min) + navetta Terminal Nord (10 min) = ~55 min. Partire alle 12:30" },
+        { "badge": "13:30",  "badgeStyle": "gold",  "text": "Essere al LGW Terminal Nord — bag drop aperto" },
+        { "badge": "15:05",  "badgeStyle": "red",   "text": "Bag drop chiude — 40 min prima. Non oltre" },
+        { "badge": "15:15",  "badgeStyle": "red",   "text": "Gate si chiude — Arrivederci Londra! 🇬🇧" }
+      ],
+      "checklistTitle": "🧳 Checklist ritorno — dall'hotel a LGW con bagagli",
+      "note": "⚠️ Il Gatwick Express arriva al Terminal Sud — prendete la navetta gratuita (People Mover) per il Terminal Nord: ~10 min extra da calcolare nel viaggio."
+    }
+  },
+
+  "map": {
+    "googleMyMapsId": "1AsySBlkKg_Z30b2gMPOh0E0Cr8s9pzk",
+    "metroMapUrl": "https://upload.wikimedia.org/wikipedia/commons/1/13/London_Underground_Overground_DLR_Crossrail_map.svg"
+  },
+
+  "practicalInfo": {
+    "items": [
+      { "label": "Trasporti",        "value": "Oyster Card",      "sub": "Acquistate all'arrivo. Vale tube, bus e treni TfL. Contactless funziona uguale." },
+      { "label": "Hotel",            "value": "K Hotel",          "sub": "Kensington · 5 min dal Science Museum, 10 min dal Natural History Museum" },
+      { "label": "Budget orientativo","value": "~£50–80/gg",      "sub": "Musei quasi tutti gratuiti! Spesa principale: Tower of London, London Eye, Warner Studios." },
+      { "label": "Meteo",            "value": "Sempre ombrello",  "sub": "Londra è imprevedibile. Strati su strati e impermeabile leggero per tutti." }
+    ]
+  },
+
+  "budget": {
+    "estimate": "~£50–80/gg",
+    "note": "Musei quasi tutti gratuiti! Spesa principale: Tower of London, London Eye, Warner Studios."
+  },
+
+  "markets": [
+    {
+      "name": "Sainsbury's",
+      "logoLetter": "S",
+      "logoColor": "#E8452A",
+      "address": "158a Cromwell Road · SW5",
+      "tag": "Grande",
+      "tagStyle": "red",
+      "description": "Uno dei supermercati più grandi e riforniti della zona. Perfetto per acquistare cibo fresco, pasti pronti, snack e bevande a prezzi convenienti. Include anche un reparto farmacia e un punto Argos all'interno.",
+      "hours": "Lun–Ven 07:00–23:00\nSabato 07:00–22:00\nDomenica 11:00–17:00",
+      "osmEmbedUrl": "https://www.openstreetmap.org/export/embed.html?bbox=-0.2005%2C51.4860%2C-0.1805%2C51.4960&layer=mapnik&marker=51.4910%2C-0.1905",
+      "mapsDirectionsUrl": "https://www.google.com/maps/dir/?api=1&destination=Sainsbury%27s%2C+158a+Cromwell+Road%2C+London+SW5&travelmode=transit"
+    },
+    {
+      "name": "Tesco Superstore",
+      "logoLetter": "T",
+      "logoColor": "#005DA0",
+      "address": "West Cromwell Road · W14",
+      "tag": "Ipermercato",
+      "tagStyle": "blue",
+      "description": "Grandissimo ipermercato con una scelta immensa di prodotti di ogni genere: alimentari, prodotti per la casa e bakery fresca. Prezzi molto convenienti.",
+      "hours": "Lun–Sab 06:00–00:00 (mezzanotte)\nDomenica 11:00–17:00",
+      "osmEmbedUrl": "https://www.openstreetmap.org/export/embed.html?bbox=-0.2150%2C51.4863%2C-0.1950%2C51.4963&layer=mapnik&marker=51.4913%2C-0.2050",
+      "mapsDirectionsUrl": "https://www.google.com/maps/dir/?api=1&destination=Tesco+Superstore%2C+West+Cromwell+Road%2C+London+W14&travelmode=transit"
+    },
+    {
+      "name": "Tesco Express",
+      "logoLetter": "T",
+      "logoColor": "#005DA0",
+      "address": "87–93 Gloucester Road · SW7",
+      "tag": "Minimarket",
+      "tagStyle": "muted",
+      "description": "Piccolo punto vendita ideale per acquisti rapidi dell'essenziale — praticamente sotto casa, sulla strada per il tube. Aperto fino a mezzanotte tutti i giorni.",
+      "hours": "Tutti i giorni 06:00–00:00 (mezzanotte)",
+      "osmEmbedUrl": "https://www.openstreetmap.org/export/embed.html?bbox=-0.1952%2C51.4888%2C-0.1752%2C51.4988&layer=mapnik&marker=51.4938%2C-0.1852",
+      "mapsDirectionsUrl": "https://www.google.com/maps/dir/?api=1&destination=Tesco+Express%2C+87+Gloucester+Road%2C+London+SW7&travelmode=transit"
+    }
+  ],
+
+  "oyster": {
+    "body": [
+      "Non è strettamente necessaria: con una carta contactless (Visa/Mastercard) o lo smartphone (Apple/Google Pay) si paga automaticamente come con l'Oyster, stessa tariffa, senza dover comprare nulla. È l'opzione più comoda per chi viene dall'estero.",
+      "Se preferite comunque la Oyster Card fisica (utile per i bambini che non hanno una carta propria), si acquista in questi punti:"
+    ],
+    "points": [
+      "All'aeromobile/aeroporto: a Gatwick non è in vendita direttamente, ma potete acquistarla appena in centro",
+      "In qualsiasi stazione della metro (Tube): alle macchinette automatiche o alle biglietterie — la più vicina al volo sarà a Victoria Station, capolinea del Gatwick Express",
+      "Nelle edicole/negozi convenzionati con il logo 'Oyster' in giro per Londra (Newsagents)",
+      "Online in anticipo: visitorshop.tfl.gov.uk — la Visitor Oyster Card vi arriva a casa prima della partenza"
+    ],
+    "tip": "Per i bambini di 7 e 9 anni: a Londra i minori di 11 anni viaggiano gratis sulla maggior parte di bus e metro se accompagnati da un adulto con Oyster/contactless valido — non serve comprare loro una card!"
+  },
+
+  "bookingChecklist": [
+    { "name": "Warner Bros. Studio Tour (G3)",   "done": true,  "url": "https://www.wbstudiotour.co.uk",                                 "note": "già prenotato ore 10:30" },
+    { "name": "Madame Tussauds (G7)",            "done": true,  "url": "https://www.madametussauds.com/london/",                         "note": "già prenotato ore 10" },
+    { "name": "Osteria Locatelli (G4)",          "done": true,  "url": null,                                                              "note": "cena ore 18:45, National Gallery, già confermata" },
+    { "name": "Natural History Museum (G1)",     "done": true,  "url": "https://www.nhm.ac.uk/visit.html",                               "note": "prenotato ore 15:30" },
+    { "name": "Science Museum (G2)",             "done": true,  "url": "https://www.sciencemuseum.org.uk/visit-us",                      "note": "prenotato ore 10:15" },
+    { "name": "British Museum (G5)",             "done": true,  "url": "https://www.britishmuseum.org/visit",                            "note": "prenotato ore 10:40" },
+    { "name": "Hard Rock Café (G5)",             "done": true,  "url": "https://www.hardrockcafe.com/location/london/",                  "note": "prenotato ore 19:00, Old Park Lane" },
+    { "name": "London Bridge Rooftop Bar (G6)",  "done": true,  "url": "https://www.londonbridgerooftop.com",                            "note": "prenotato ore 18:30" },
+    { "name": "SEA LIFE London Aquarium (G8)",   "done": true,  "url": "https://www.visitsealife.com/london/",                           "note": "prenotato ore 15:30" },
+    { "name": "Cambio della Guardia (G4)",       "done": false, "url": "https://www.householddivision.org.uk/changing-the-guard-calendar","note": "verificare date sul calendario ufficiale" },
+    { "name": "London Eye (G4)",                 "done": false, "url": "https://www.londoneye.com",                                      "note": "prenotare online, risparmio e salta-coda" },
+    { "name": "Tower of London (G6)",            "done": false, "url": "https://www.hrp.org.uk/tower-of-london/",                        "note": "prenotare online, risparmio ~£5/persona" },
+    { "name": "Tower Bridge (G6)",               "done": false, "url": "https://www.towerbridge.org.uk",                                 "note": "biglietti online consigliati" },
+    { "name": "HMS Belfast (G6)",                "done": false, "url": "https://www.iwm.org.uk/visits/hms-belfast",                      "note": "prenotare online" },
+    { "name": "Transfer Gatwick ↔ Hotel",        "done": false, "url": null,                                                              "note": "consigliato transfer privato con bagagli e bambini" }
+  ],
+
+  "days": [
+    {
+      "n": 1,
+      "date": "2026-07-29",
+      "dateLabel": "29 LUG",
+      "title": "Arrivo a Londra 🛬",
+      "subtitle": "Martedì 29 Luglio · Kensington • South Kensington",
+      "style": "default",
+      "zone": "📍 Kensington / South Kensington",
+      "transportSummary": [
+        { "label": "Gatwick → Hotel", "detail": "Gatwick Express o Southern Rail fino a London Victoria → cambio Circle o District line → Gloucester Road (poche fermate). Poi 5 min a piedi fino all'hotel in Courtfield Gardens." },
+        { "label": "Hotel → Natural History Museum", "detail": "10 min a piedi. Uscite dall'hotel, destra su Gloucester Road, poi destra su Cromwell Road. Il museo è sulla destra." },
+        { "label": "Natural History Museum → Hotel", "detail": "stesso percorso a piedi, 10 min." }
+      ],
+      "badges": [
+        { "text": "Volo MXP→LGW 10:30", "color": "red" },
+        { "text": "Zona hotel",           "color": "default" }
+      ],
+      "events": [
+        {
+          "time": "10:30",
+          "name": "Partenza da Malpensa",
+          "type": "logistics",
+          "description": "Volo MXP → LGW. Arrivo previsto 11:30 ora locale."
+        },
+        {
+          "time": "12:30",
+          "name": "Transfer Gatwick → Hotel",
+          "type": "logistics",
+          "description": "Circa 60–75 min. Opzioni: Gatwick Express fino a Victoria, poi taxi/Uber; oppure transfer privato diretto.",
+          "tip": "💡 Con bambini e bagagli, vale la pena prenotare un transfer privato porta a porta."
+        },
+        {
+          "time": "14:00",
+          "name": "Check-in K Hotel Kensington",
+          "type": "logistics",
+          "description": "Deposito bagagli se la stanza non è ancora pronta. Check-in standard ore 14."
+        },
+        {
+          "time": "15:30",
+          "name": "Natural History Museum 🦕",
+          "type": "booked",
+          "description": "A 5 minuti a piedi dall'hotel! Ingresso gratuito. Ideale per smaltire il jet-lag con i bambini: dinosauri, balena blu, mammiferi. Non serve tutto il museo oggi.",
+          "placeGuide": "Natural History Museum, London"
+        },
+        {
+          "time": "18:30",
+          "name": "Cena a South Kensington",
+          "type": "meal",
+          "description": "Tante opzioni in zona: pasti leggeri in stile pub inglese o ristoranti italiani in Old Brompton Road. Prima serata tranquilla per recuperare le energie.",
+          "placeGuide": "South Kensington, London"
+        }
+      ],
+      "notesTitle": "Note del giorno",
+      "notes": [
+        "Non organizzare nulla di 'lontano' oggi: il transfer + check-in mangia metà pomeriggio",
+        "Il Natural History Museum è letteralmente sotto casa: perfetto per un ingresso morbido",
+        "Acquistare l'Oyster Card o abilitare contactless appena in hotel"
+      ]
+    },
+
+    {
+      "n": 2,
+      "date": "2026-07-30",
+      "dateLabel": "30 LUG",
+      "title": "Hyde Park, Notting Hill & Portobello",
+      "subtitle": "Mercoledì 30 Luglio · West London • A piedi e tube",
+      "style": "default",
+      "zone": "📍 South Kensington → Notting Hill",
+      "transportSummary": [
+        { "label": "Hotel → Science Museum", "detail": "5 min a piedi. Uscite dall'hotel, destra su Gloucester Road, poi sinistra su Cromwell Road e subito destra su Exhibition Road. Il museo è sulla sinistra." },
+        { "label": "Science Museum → Hyde Park", "detail": "15 min a piedi verso nord lungo Exhibition Road fino all'ingresso di Kensington Gardens." },
+        { "label": "Hyde Park → Notting Hill", "detail": "20 min a piedi verso nord-ovest, oppure tube: South Kensington → Notting Hill Gate (linea Circle/District, 2 fermate)." },
+        { "label": "Notting Hill → Hotel", "detail": "20 min a piedi, oppure tube: Notting Hill Gate → Gloucester Road (linea Circle/District, 2 fermate)." }
+      ],
+      "badges": [
+        { "text": "Museo Scienza", "color": "blue" },
+        { "text": "Notting Hill",   "color": "default" }
+      ],
+      "events": [
+        {
+          "time": "10:15",
+          "name": "Science Museum 🚀",
+          "type": "booked",
+          "description": "A 2 minuti dall'hotel. Gratis. Spazio, aeroplani, tecnologia: i bambini impazziscono. Dedicare 2–3 ore.",
+          "placeGuide": "Science Museum, London"
+        },
+        {
+          "time": "13:00",
+          "name": "Pranzo in zona Exhibition Road",
+          "type": "meal",
+          "description": "Tante opzioni vicino ai musei, anche fast casual adatte ai bimbi."
+        },
+        {
+          "time": "14:30",
+          "name": "Passeggiata a Hyde Park 🌳",
+          "type": "visit",
+          "description": "Entrata da Kensington Gardens. Kensington Palace, il lago Serpentine, giochi all'aperto. Bellissimo per i bambini.",
+          "placeGuide": "Hyde Park, London"
+        },
+        {
+          "time": "16:30",
+          "name": "Notting Hill & Portobello Road 🌈",
+          "type": "visit",
+          "description": "15 min a piedi da Hyde Park. Casette colorate, atmosfera unica. Gelaterie, negozietti. Ideale per una passeggiata pomeridiana.",
+          "tip": "💡 Il mercato di Portobello è più vivace il sabato mattina, ma la strada è bella in qualsiasi giorno.",
+          "placeGuide": "Portobello Road Market, London"
+        },
+        {
+          "time": "19:30",
+          "name": "Cena a Notting Hill",
+          "type": "meal",
+          "description": "Zona piena di ristoranti carini. Poi rientro in hotel a piedi o tube (stazione Notting Hill Gate, linea Circle/District).",
+          "placeGuide": "Notting Hill, London"
+        }
+      ]
+    },
+
+    {
+      "n": 3,
+      "date": "2026-07-31",
+      "dateLabel": "31 LUG",
+      "title": "⚡ Harry Potter Warner Studios",
+      "subtitle": "Giovedì 31 Luglio · Watford • Tour prenotato ore 10:30",
+      "style": "special",
+      "zone": "📍 Warner Bros. Studio — Leavesden, Watford",
+      "transportSummary": [
+        { "label": "Hotel → Warner Bros. Studios", "detail": "Gloucester Road (Piccadilly line) → King's Cross St Pancras (cambio Victoria line) → Euston → treno Overground per Watford Junction (~20 min) → shuttle bus gratuito per gli Studios. Totale ~1h15. Partire entro le 08:30." },
+        { "label": "Warner Bros. Studios → Hotel", "detail": "Percorso inverso. Shuttle → Watford Junction → treno per Euston → tube Victoria line → Green Park → Piccadilly line → Gloucester Road." }
+      ],
+      "badges": [
+        { "text": "Prenotato 10:30",    "color": "red" },
+        { "text": "Giornata dedicata",  "color": "default" }
+      ],
+      "events": [
+        {
+          "time": "08:30",
+          "name": "Partenza dall'hotel",
+          "type": "logistics",
+          "description": "Tube fino a Euston (Piccadilly line → Victoria line), poi treno diretto per Watford Junction (~20 min). Dallo studio c'è uno shuttle bus dal 2024.",
+          "alert": "⏰ Con ingresso alle 10:30, partire entro le 8:30. Il percorso totale è circa 1h15."
+        },
+        {
+          "time": "10:30",
+          "name": "Warner Bros. Studio Tour 🧙",
+          "type": "booked",
+          "description": "La Grande Sala, Diagon Alley, i set originali, i costumi, la Butterbeer! Dedicare almeno 4–5 ore.",
+          "tip": "💡 Il negozio souvenir è ENORME — mettete un budget in tasca ai bambini o vi rovinano! 😄",
+          "placeGuide": "Warner Bros. Studio Tour London"
+        },
+        {
+          "time": "13:00",
+          "name": "Pranzo allo studio",
+          "type": "meal",
+          "description": "C'è un backlot café con la Butterbeer e cibo decente. Prezzi da parco turistico, ma fa parte dell'esperienza."
+        },
+        {
+          "time": "16:30",
+          "name": "Rientro a Londra",
+          "type": "logistics",
+          "description": "Shuttle → Watford Junction → treno per Euston → tube per hotel."
+        },
+        {
+          "time": "19:30",
+          "name": "Cena tranquilla in zona Kensington",
+          "type": "meal",
+          "description": "Serata rilassata dopo una giornata piena di magia."
+        }
+      ]
+    },
+
+    {
+      "n": 4,
+      "date": "2026-08-01",
+      "dateLabel": "1 AGO",
+      "title": "Westminster, Big Ben & Buckingham",
+      "subtitle": "Venerdì 1 Agosto · Royal London • South Bank",
+      "style": "default",
+      "zone": "📍 South Bank → Westminster → St. James's → Trafalgar Square",
+      "transportSummary": [
+        { "label": "Hotel → London Eye", "detail": "Gloucester Road (District line, direzione Tower Hill) → Westminster (5 fermate, ~15 min) → 8 min a piedi sul Westminster Bridge fino al London Eye." },
+        { "label": "National Gallery/Trafalgar Square → Hotel", "detail": "Charing Cross (Circle/District line, direzione Wimbledon) → Gloucester Road (3 fermate, ~10 min)." }
+      ],
+      "badges": [
+        { "text": "Cambio della guardia", "color": "blue" },
+        { "text": "Westminster Abbey",    "color": "default" },
+        { "text": "London Eye",           "color": "default" },
+        { "text": "National Gallery",     "color": "default" }
+      ],
+      "events": [
+        {
+          "time": "10:00",
+          "name": "London Eye 🎡",
+          "type": "visit",
+          "description": "30 minuti di giro panoramico sul Tamigi. I bambini adorano. Prenotare online in anticipo per saltare la coda.",
+          "tip": "💡 Prenotate il primo slot della mattina — meno folla e luce migliore per le foto.",
+          "placeGuide": "London Eye, London"
+        },
+        {
+          "time": "11:00",
+          "name": "Westminster & Big Ben 🕰️",
+          "type": "visit",
+          "description": "Attraversate il Westminster Bridge per la foto iconica con il Big Ben. Houses of Parliament, Westminster Abbey (ingresso a pagamento, ma vale la pena).",
+          "placeGuide": "Westminster Bridge, London"
+        },
+        {
+          "time": "12:30",
+          "name": "Pranzo a South Bank",
+          "type": "meal",
+          "description": "Borough Market il venerdì è aperto e pieno di bancarelle. In alternativa uno dei tanti locali sul Tamigi con vista sul fiume.",
+          "placeGuide": "Borough Market, London"
+        },
+        {
+          "time": "13:30",
+          "name": "St. James's Park 🦢",
+          "type": "visit",
+          "description": "Il parco più bello di Londra. Pelicani, vista sul London Eye e sul Palazzo. Perfetto per i bimbi — si raggiunge a piedi da Westminster in 10 min.",
+          "placeGuide": "St James's Park, London"
+        },
+        {
+          "time": "15:00",
+          "name": "Captain's Inspection 💂 — Buckingham Palace",
+          "type": "booked",
+          "showBookingBadge": false,
+          "description": "La Captain's Inspection si svolge ogni giorno alle 16:00 nel piazzale interno, visibile dal cancello. Arrivate con un po' di anticipo per un buon posto lungo le transenne.",
+          "alert": "⏰ Diverso dal Cambio della Guardia mattutino — questo è il pomeriggio, ogni giorno, nessun calendario da verificare.",
+          "placeGuide": "Buckingham Palace, London"
+        },
+        {
+          "time": "16:00",
+          "name": "National Gallery 🖼️",
+          "type": "booked",
+          "description": "Ingresso gratuito, esattamente di fronte a Trafalgar Square — 15 min a piedi da Buckingham Palace lungo The Mall. Con i bambini puntate dritti alle sale di Van Gogh, Monet e Botticelli — le più scenografiche. Bastano 45–60 min mirati.",
+          "tip": "💡 Il venerdì la National Gallery è aperta fino alle 21:00 — avete tutto il tempo!",
+          "placeGuide": "National Gallery, London"
+        },
+        {
+          "time": "18:45",
+          "name": "Cena all'Osteria Locatelli 🍝",
+          "type": "booked",
+          "description": "Ristorante di Giorgio Locatelli all'interno della National Gallery, Trafalgar Square. Cucina italiana raffinata in un contesto unico — si cena circondati dall'arte. Perfetto dopo la visita alla galleria, senza nemmeno spostarsi!",
+          "tip": "💡 Assicuratevi di avere la prenotazione confermata. Smart casual come dress code.",
+          "placeGuide": "Osteria Locatelli, London"
+        },
+        {
+          "time": "20:30",
+          "name": "Trafalgar Square 🦁",
+          "type": "visit",
+          "description": "I leoni, le fontane, la colonna di Nelson. Passeggiata serale dopo cena — ci siete già, basta uscire dalla galleria. Foto di rito con i bambini arrampicati sui leoni!",
+          "placeGuide": "Trafalgar Square, London"
+        }
+      ]
+    },
+
+    {
+      "n": 5,
+      "date": "2026-08-02",
+      "dateLabel": "2 AGO",
+      "title": "British Museum, Carnaby & Covent Garden",
+      "subtitle": "Sabato 2 Agosto · Central London • Cultura, shopping e cena rock",
+      "style": "default",
+      "zone": "📍 Bloomsbury → Soho → Covent Garden → Piccadilly → Leicester Square → Mayfair",
+      "transportSummary": [
+        { "label": "Hotel → British Museum", "detail": "Gloucester Road (Piccadilly line) → Holborn (diretto, ~20 min) → 5 min a piedi. In alternativa District/Circle → Monument, cambio Central line → Holborn." },
+        { "label": "Hard Rock Café → Hotel", "detail": "Hyde Park Corner (Piccadilly line) → Gloucester Road (1 fermata, 2 min). Oppure a piedi in 15 min lungo Old Brompton Road." }
+      ],
+      "badges": [
+        { "text": "British Museum", "color": "blue" },
+        { "text": "Carnaby Street", "color": "default" },
+        { "text": "Covent Garden",  "color": "default" },
+        { "text": "Piccadilly",     "color": "default" },
+        { "text": "LEGO Store",     "color": "default" },
+        { "text": "Hard Rock Café", "color": "gold" }
+      ],
+      "events": [
+        {
+          "time": "10:40",
+          "name": "British Museum 🏛️",
+          "type": "booked",
+          "description": "Mummie egiziane, Stele di Rosetta, reperti greci… Ingresso gratuito. Dedicare 2–3 ore. Con bambini: puntare dritti all'Egitto e alla Grecia (più scenografici).",
+          "placeGuide": "British Museum, London"
+        },
+        {
+          "time": "13:00",
+          "name": "Pranzo a Bloomsbury",
+          "type": "meal",
+          "description": "Caffè del museo o tante opzioni in Museum Street e dintorni."
+        },
+        {
+          "time": "14:30",
+          "name": "Carnaby Street 🛍️",
+          "type": "visit",
+          "description": "20 minuti a piedi dal museo (o tube Central line). La strada più colorata di Londra: boutique, street style, decorazioni a tema. Perfetta per una passeggiata e qualche acquisto.",
+          "placeGuide": "Carnaby Street, London"
+        },
+        {
+          "time": "15:30",
+          "name": "Covent Garden 🎭",
+          "type": "visit",
+          "description": "10 minuti a piedi da Carnaby. Artisti di strada, mercato coperto, negozietti, gelaterie. I bambini adorano gli acrobati e i musicisti. Atmosfera unica.",
+          "placeGuide": "Covent Garden, London"
+        },
+        {
+          "time": "16:30",
+          "name": "Piccadilly Circus 🎪",
+          "type": "visit",
+          "description": "10 minuti a piedi. Le iconiche insegne luminose, la statua di Eros, l'atmosfera caotica e vivacissima del cuore di Londra.",
+          "placeGuide": "Piccadilly Circus, London"
+        },
+        {
+          "time": "17:00",
+          "name": "Fortnum & Mason 🫖",
+          "type": "visit",
+          "description": "181 Piccadilly — proprio a due passi da Piccadilly Circus. Il negozio di alimentari più iconico di Londra: tè pregiati, confetture, biscotti e packaging da regalo bellissimo. Un'esperienza unica anche solo a guardare. Perfetto per souvenir di qualità.",
+          "tip": "💡 Il piano terra è quello più scenografico. Se volete uno spuntino, il caffè ai piani superiori è raffinato ma costoso.",
+          "placeGuide": "Fortnum & Mason, 181 Piccadilly, London"
+        },
+        {
+          "time": "17:15",
+          "name": "LEGO Store Leicester Square 🧱",
+          "type": "booked",
+          "showBookingBadge": false,
+          "description": "5 minuti a piedi da Piccadilly. Il più grande flagship store Lego d'Europa! Big Ben in Lego, sezione Harry Potter, stazione per le minifigure personalizzate. I bambini impazziranno.",
+          "tip": "💡 Orario: 10–22. Perfetto nel tardo pomeriggio quando si è già scarichi di energia — qui si ricaricano!",
+          "placeGuide": "LEGO Store, Leicester Square, London"
+        },
+        {
+          "time": "19:00",
+          "name": "Cena all'Hard Rock Café 🎸",
+          "type": "booked",
+          "description": "150 Old Park Lane — il primo Hard Rock Café della storia, aperto nel 1971! A 10 minuti a piedi da Leicester Square. Burger, costine, atmosfera rock con cimeli musicali ovunque. I bambini adorano guardarsi intorno e c'è anche il negozio souvenir all'uscita.",
+          "placeGuide": "Hard Rock Cafe London"
+        }
+      ]
+    },
+
+    {
+      "n": 6,
+      "date": "2026-08-03",
+      "dateLabel": "3 AGO",
+      "title": "Tower of London, Tower Bridge & South Bank",
+      "subtitle": "Domenica 3 Agosto · East London • City of London",
+      "style": "default",
+      "zone": "📍 Tower Hill → South Bank → London Bridge",
+      "transportSummary": [
+        { "label": "Hotel → Tower of London", "detail": "Gloucester Road (District line, direzione Upminster/Barking) → Tower Hill (diretto, ~30 min, 7 fermate) → 2 min a piedi." },
+        { "label": "London Bridge Rooftop → Hotel", "detail": "London Bridge (District/Circle line, direzione Wimbledon/Edgware Road) → Gloucester Road (5 fermate, ~18 min). Oppure Uber/taxi diretto ~25 min." }
+      ],
+      "badges": [
+        { "text": "Tower of London",         "color": "blue" },
+        { "text": "Tower Bridge",             "color": "default" },
+        { "text": "HMS Belfast",              "color": "default" },
+        { "text": "London Bridge Rooftop",    "color": "gold" }
+      ],
+      "events": [
+        {
+          "time": "09:00",
+          "name": "Tower of London 🏰",
+          "type": "booked",
+          "description": "I Gioielli della Corona, i Ravens, i Beefeater! Arrivare presto per evitare le code. Dedicare 2–3 ore.",
+          "tip": "💡 Il tour guidato dei Beefeater è incluso nel biglietto ed è fantastico, anche per i bambini (ironico e divertente).",
+          "placeGuide": "Tower of London"
+        },
+        {
+          "time": "12:30",
+          "name": "Pausa a Potter's Fields Park 🌿",
+          "type": "visit",
+          "description": "Prato direttamente sul Tamigi, con vista frontale su Tower Bridge. Perfetto per uno snack veloce o street food dai chioschetti in zona. I bambini possono correre liberamente mentre voi riprendete fiato dopo la mattina.",
+          "placeGuide": "Potters Fields Park, London"
+        },
+        {
+          "time": "13:30",
+          "name": "Tower Bridge 🌉",
+          "type": "visit",
+          "description": "Exhibition interna con il camminamento in vetro sul Tamigi. Vista mozzafiato. Controllate se il ponte si apre — uno spettacolo raro e gratuito da vedere.",
+          "tip": "💡 Orari di apertura del ponte su towerbridgeapp.com — potete pianificare la visita per coincidere con un'apertura!",
+          "placeGuide": "Tower Bridge, London"
+        },
+        {
+          "time": "15:00",
+          "name": "HMS Belfast ⚓",
+          "type": "visit",
+          "description": "Incrociatore della Seconda Guerra Mondiale ormeggiato sul Tamigi, a 10 minuti a piedi da Tower Bridge. 9 ponti da esplorare, cannoni, sala macchine, cabine originali. I bambini possono arrampicarsi, esplorare e giocare a fare i marinai. Circa 1h30.",
+          "tip": "💡 Bambini sotto i 5 anni entrano gratis.",
+          "placeGuide": "HMS Belfast, London"
+        },
+        {
+          "time": "17:00",
+          "name": "Passeggiata sul South Bank 🚶",
+          "type": "visit",
+          "description": "15 minuti a piedi lungo il Tamigi fino a London Bridge. Artisti di strada, vista sul Tamigi, atmosfera serale bellissima d'estate."
+        },
+        {
+          "time": "18:30",
+          "name": "London Bridge Rooftop Bar — Aperitivo-Cena 🌇🍔",
+          "type": "booked",
+          "description": "Colechurch House, London Bridge Walk. Vista panoramica 360° su The Shard, Tower of London e London Eye. Burger, fries, cocktail e soft drink con il tramonto su Londra. Prendete un bel tavolo con vista e godetevelo con calma — non serve andare da nessun'altra parte per la cena!",
+          "placeGuide": "London Bridge Rooftop Bar, London"
+        }
+      ]
+    },
+
+    {
+      "n": 7,
+      "date": "2026-08-04",
+      "dateLabel": "4 AGO",
+      "title": "⭐ Madame Tussauds & Marylebone",
+      "subtitle": "Lunedì 4 Agosto · Marylebone • West End",
+      "style": "special",
+      "zone": "📍 Marylebone → Oxford Street → Regent Street → Soho",
+      "transportSummary": [
+        { "label": "Hotel → Madame Tussauds", "detail": "Gloucester Road (Piccadilly line) → Baker Street (diretto, ~12 min, 4 fermate) → 5 min a piedi su Marylebone Road." },
+        { "label": "Soho → Hotel", "detail": "Leicester Square o Piccadilly Circus (Piccadilly line) → Gloucester Road (diretto, 3-4 fermate, ~10 min)." }
+      ],
+      "badges": [
+        { "text": "Prenotato ore 10", "color": "red" },
+        { "text": "Oxford Street",    "color": "default" },
+        { "text": "Soho",            "color": "default" }
+      ],
+      "events": [
+        {
+          "time": "10:00",
+          "name": "Madame Tussauds 🎭",
+          "type": "booked",
+          "description": "Ingresso prenotato. I bambini adorano le statue dei personaggi Marvel, sportivi, regali. Circa 2 ore.",
+          "tip": "💡 Arrivate esattamente all'orario prenotato per bypassare la fila all'ingresso.",
+          "placeGuide": "Madame Tussauds London"
+        },
+        {
+          "time": "12:30",
+          "name": "Pranzo a Marylebone",
+          "type": "meal",
+          "description": "Marylebone High Street è una delle strade più belle di Londra. Caffè, deli, ristoranti ottimi.",
+          "placeGuide": "Marylebone High Street, London"
+        },
+        {
+          "time": "14:00",
+          "name": "Oxford Street & Regent Street 🛍️",
+          "type": "visit",
+          "description": "Shopping, grandi magazzini Selfridges, Liberty London, M&S. Ottimo per souvenir e shopping.",
+          "placeGuide": "Oxford Street, London"
+        },
+        {
+          "time": "16:30",
+          "name": "Carnaby Street (bis) o Soho",
+          "type": "visit",
+          "description": "Se non ci siete stati abbastanza il giorno 5, esplorate Soho con le sue stradine, street art e vetrine.",
+          "placeGuide": "Carnaby Street, London"
+        },
+        {
+          "time": "19:30",
+          "name": "Cena a Soho 🍜",
+          "type": "meal",
+          "description": "Il quartiere più gastronomicamente vario di Londra: cinese, giapponese, italiano, fusion. Per tutti i gusti e tutte le età.",
+          "placeGuide": "Soho, London"
+        }
+      ]
+    },
+
+    {
+      "n": 8,
+      "date": "2026-08-05",
+      "dateLabel": "5 AGO",
+      "title": "Greenwich, Camden & Giornata Libera",
+      "subtitle": "Martedì 5 Agosto · South East → North London",
+      "style": "gold",
+      "zone": "📍 Greenwich → South Bank",
+      "transportSummary": [
+        { "label": "Hotel → Greenwich", "detail": "A piedi fino a Gloucester Road → Piccadilly line → Embankment (6 fermate, ~15 min) → Uber Boat by Thames Clippers da Embankment Pier fino a Greenwich (~50 min sul Tamigi, bellissimo!)." },
+        { "label": "Greenwich → SEA LIFE (South Bank)", "detail": "Uber Boat da Greenwich Pier → Embankment o Waterloo Pier (~50 min), oppure DLR da Cutty Sark → Bank → Jubilee line → Waterloo (~30 min) → 10 min a piedi al County Hall." },
+        { "label": "SEA LIFE/South Bank → Hotel", "detail": "Waterloo (Jubilee line) → Green Park → Piccadilly line → Gloucester Road (~20 min). Oppure Uber/taxi diretto ~25 min." }
+      ],
+      "badges": [
+        { "text": "Greenwich",       "color": "default" },
+        { "text": "Camden Market",   "color": "default" },
+        { "text": "SEA LIFE Aquarium","color": "blue" },
+        { "text": "Ultima cena 🥂", "color": "gold" }
+      ],
+      "dayDescription": "Mattina flessibile tra tre opzioni — Greenwich, Camden o la Pergola di Hampstead — poi tutti convergono al South Bank per il pomeriggio.",
+      "events": [
+        {
+          "time": "10:00",
+          "name": "🅰 Opzione A — Greenwich",
+          "type": "visit",
+          "description": "Royal Observatory (Meridiano di Greenwich), Cutty Sark (veliero storico), mercato, parco con vista su Canary Wharf. Ottimo per bambini curiosi. Si raggiunge in Uber Boat!",
+          "tip": "💡 L'Uber Boat by Thames Clippers è un'esperienza bellissima: si sale a Embankment e si arriva a Greenwich in 50 min sul Tamigi. Poi si risale verso il South Bank comodamente.",
+          "placeGuide": "Royal Observatory Greenwich, London"
+        },
+        {
+          "time": "10:00",
+          "name": "🅱 Opzione B — Camden Market",
+          "type": "visit",
+          "description": "Il mercato più eccentrico di Londra: street food da tutto il mondo, stalls di vestiti, musica. I bambini più grandi adorano. Camden Lock, canal. Poi tube verso South Bank (Northern line → Waterloo).",
+          "placeGuide": "Camden Market, London"
+        },
+        {
+          "time": "10:00",
+          "name": "🅲 Opzione C — Hampstead Pergola",
+          "type": "visit",
+          "description": "La 'hidden walkway' di Londra: una passerella sopraelevata del 1904 tutta ricoperta di glicine, viti e fiori esotici, immersa nei giardini di Hampstead Heath. Atmosfera d'altri tempi, quasi magica. Ingresso gratuito. Si combina bene con una passeggiata sull'Heath.",
+          "tip": "💡 Come arrivare: Piccadilly line da Gloucester Road → King's Cross (~15 min) → Northern line (Edgware branch) → Golders Green (5 fermate) → bus 210/268 fermata Inverforth House, 5 min a piedi. Tot ~40 min. Per il ritorno: stesso percorso → Waterloo (Jubilee) per il South Bank.",
+          "placeGuide": "Hill Garden and Pergola, Hampstead Heath, London"
+        },
+        {
+          "time": "13:00",
+          "name": "Pranzo on location",
+          "type": "meal",
+          "description": "Greenwich e Camden hanno street food eccellente. A Hampstead, ottimi pub e café sul Heath. Mangiate prima di spostarvi verso il South Bank."
+        },
+        {
+          "time": "15:30",
+          "name": "SEA LIFE London Aquarium 🐠🦈",
+          "type": "booked",
+          "description": "County Hall, South Bank — accanto al London Eye. Squali, meduse, pinguini, cavallucci marini e il tunnel sottomarino dove i pesci nuotano sopra le vostre teste. Circa 1h30 per visitarlo con calma. Perfetto per 7 e 9 anni.",
+          "placeGuide": "SEA LIFE London Aquarium"
+        },
+        {
+          "time": "16:00",
+          "name": "Passeggiata South Bank & London Eye 🎡",
+          "type": "visit",
+          "description": "Usciti dall'acquario siete già sul South Bank. Gelato, vista sul Tamigi, ultima passeggiata romantica lungo il fiume. Se i bimbi hanno ancora energie, i giochi di Jubilee Gardens sono proprio lì.",
+          "placeGuide": "South Bank, London"
+        },
+        {
+          "time": "19:00",
+          "name": "Cena speciale — ultima sera intera 🥂",
+          "type": "meal",
+          "description": "Scegliete il vostro ristorante preferito della settimana o provate qualcosa di nuovo sul South Bank. Una serata speciale per celebrare 9 giorni fantastici a Londra!"
+        }
+      ]
+    },
+
+    {
+      "n": 9,
+      "date": "2026-08-06",
+      "dateLabel": "6 AGO",
+      "title": "Mattina libera → Partenza ✈️",
+      "subtitle": "Mercoledì 6 Agosto · Kensington → Gatwick",
+      "style": "last",
+      "zone": "📍 Kensington → Gatwick Airport",
+      "transportSummary": [
+        { "label": "Hotel → Gatwick", "detail": "A piedi fino a Gloucester Road → Circle o District line fino a London Victoria → Gatwick Express o Southern Rail diretto per Gatwick Airport (~30 min). Partire dall'hotel entro le 13:00 per essere a Gatwick entro le 14:15-14:30 con il volo alle 15:45." }
+      ],
+      "transportTip": "In alternativa, taxi/Uber privato porta a porta dall'hotel a Gatwick (~60-75 min, più comodo con bagagli e bambini).",
+      "badges": [
+        { "text": "Volo LGW→MXP 15:45", "color": "red" },
+        { "text": "Check-out",           "color": "default" }
+      ],
+      "events": [
+        {
+          "time": "08:00",
+          "name": "Colazione in hotel",
+          "type": "meal",
+          "description": "Ultima colazione all'inglese! Godetevi i Full English Breakfast."
+        },
+        {
+          "time": "09:30",
+          "name": "Check-out & deposito bagagli",
+          "type": "logistics",
+          "description": "Lasciate i bagagli in hotel e fate un ultimo giro libero."
+        },
+        {
+          "time": "10:00",
+          "name": "Mattina libera a South Kensington 🌸",
+          "type": "visit",
+          "description": "Ultima passeggiata nel quartiere, gelato, shopping last minute a Old Brompton Road o Kings Road. Oppure tornate al museo preferito dai bimbi per l'ultimo saluto.",
+          "placeGuide": "South Kensington, London"
+        },
+        {
+          "time": "12:30",
+          "name": "Pranzo veloce in zona",
+          "type": "meal",
+          "description": "Pasto leggero prima di partire."
+        },
+        {
+          "time": "13:00",
+          "name": "Partenza per Gatwick 🚌",
+          "type": "booked",
+          "showBookingBadge": false,
+          "description": "Ritiro bagagli in hotel e transfer verso Gatwick. Circa 60–75 min di viaggio.",
+          "alert": "⏰ Con volo alle 15:45, partire dall'hotel entro le 13:00 per arrivare a Gatwick alle 14:15–14:30. Consigliato il check-in online.",
+          "placeGuide": "London Gatwick Airport"
+        },
+        {
+          "time": "15:45",
+          "name": "Volo LGW → MXP ✈️",
+          "type": "logistics",
+          "description": "Arrivo a Milano Malpensa 18:45. Londra, ci vediamo presto! 🇬🇧❤️"
+        }
+      ],
+      "notesTitle": "Checklist partenza",
+      "notes": [
+        "Ricaricate l'Oyster Card → tenete il credito avanzato come ricordo",
+        "Acquisti duty-free a Gatwick dopo i controlli sicurezza",
+        "Convalidate ricevute per eventuali rimborsi IVA",
+        "Foto di gruppo finale davanti all'hotel!"
+      ]
+    }
+  ],
+
+  "tickets": [
+    { "name": "Natural History Museum",        "dayN": 1, "dayLabel": "G1 · Mer 29 Lug · ore 15:30", "pdfPath": "tickets/natural-history-museum.pdf",  "isVip": false },
+    { "name": "Science Museum",                "dayN": 2, "dayLabel": "G2 · Gio 30 Lug · ore 10:15", "pdfPath": "tickets/science-museum.pdf",           "isVip": false },
+    { "name": "Warner Bros — Harry Potter Studios", "dayN": 3, "dayLabel": "G3 · Ven 31 Lug · ore 10:30", "pdfPath": "tickets/warner-bros-harry-potter.pdf", "isVip": true  },
+    { "name": "National Gallery",              "dayN": 4, "dayLabel": "G4 · Sab 1 Ago · ore 16:00", "pdfPath": "tickets/national-gallery.pdf",          "isVip": false },
+    { "name": "Osteria Locatelli",             "dayN": 4, "dayLabel": "G4 · Sab 1 Ago · ore 18:45", "pdfPath": "tickets/osteria-locatelli.pdf",         "isVip": false },
+    { "name": "British Museum",                "dayN": 5, "dayLabel": "G5 · Dom 2 Ago · ore 10:40", "pdfPath": "tickets/british-museum.pdf",            "isVip": false },
+    { "name": "Tower of London",               "dayN": 6, "dayLabel": "G6 · Lun 3 Ago · ore 09:00", "pdfPath": "tickets/historic-royal-palace.pdf",    "isVip": true  },
+    { "name": "Madame Tussauds",               "dayN": 7, "dayLabel": "G7 · Mar 4 Ago · ore 10:00", "pdfPath": "tickets/madame-tussauds.pdf",           "isVip": true  },
+    { "name": "SEA LIFE London Aquarium",      "dayN": 8, "dayLabel": "G8 · Mer 5 Ago · ore 15:30", "pdfPath": "tickets/sealife-london.pdf",            "isVip": false }
+  ]
+}

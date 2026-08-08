@@ -1,13 +1,18 @@
-import { Tabs, useLocalSearchParams } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { Tabs, router } from 'expo-router';
+import { Pressable, useColorScheme } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 
 import { Colors } from '@/constants/theme';
 
 export default function TripLayout() {
-  const { id } = useLocalSearchParams<{ id: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
+
+  const backButton = (
+    <Pressable onPress={() => router.back()} style={{ marginLeft: 8, padding: 4 }}>
+      <SymbolView name="chevron.left" size={22} tintColor="#007AFF" />
+    </Pressable>
+  );
 
   return (
     <Tabs
@@ -18,6 +23,7 @@ export default function TripLayout() {
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
         headerShadowVisible: false,
+        headerLeft: () => backButton,
       }}
     >
       <Tabs.Screen

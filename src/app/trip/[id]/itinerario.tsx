@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
 import { tripRepository } from '@/repository/TripRepository';
-import { Trip } from '@/types/trip';
+import { Trip, TripEvent } from '@/types/trip';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -37,7 +37,7 @@ export default function ItinerarioScreen() {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <SymbolView name="exclamationmark.triangle" size={48} tintColor={theme.textSecondary} />
-        <Text style={[styles.errorText, { color: theme.textSecondary }]}>Viaggio non trovato</Text>
+        <Text style={[styles.centerText, { color: theme.textSecondary }]}>Viaggio non trovato</Text>
       </View>
     );
   }
@@ -46,8 +46,8 @@ export default function ItinerarioScreen() {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <SymbolView name="calendar.badge.plus" size={48} tintColor={theme.textSecondary} />
-        <Text style={[styles.emptyTitle, { color: theme.text }]}>Nessun giorno</Text>
-        <Text style={[styles.emptyHint, { color: theme.textSecondary }]}>
+        <Text style={[styles.centerTitle, { color: theme.text }]}>Nessun giorno</Text>
+        <Text style={[styles.centerText, { color: theme.textSecondary }]}>
           Aggiungi giorni al viaggio per vedere l'itinerario
         </Text>
       </View>
@@ -62,32 +62,77 @@ export default function ItinerarioScreen() {
       {trip.days.map((day) => (
         <View key={day.n} style={[styles.dayCard, { backgroundColor: theme.backgroundElement }]}>
           <View style={styles.dayHeader}>
-            <Text style={[styles.dayNumber, { color: '#007AFF' }]}>Giorno {day.n}</Text>
+            <Text style={[styles.dayNumber, { color: dayNumberColor(day.style) }]}>
+              Giorno {day.n}
+            </Text>
             <Text style={[styles.dayDate, { color: theme.textSecondary }]}>{day.dateLabel}</Text>
           </View>
           <Text style={[styles.dayTitle, { color: theme.text }]}>{day.title}</Text>
           {day.subtitle ? (
             <Text style={[styles.daySubtitle, { color: theme.textSecondary }]}>{day.subtitle}</Text>
           ) : null}
+          {day.badges.length > 0 && (
+            <View style={styles.badgeRow}>
+              {day.badges.map((b, i) => (
+                <View key={i} style={[styles.badge, { backgroundColor: badgeBg(b.color) }]}>
+                  <Text style={[styles.badgeText, { color: badgeFg(b.color) }]}>{b.text}</Text>
+                </View>
+              ))}
+            </View>
+          )}
           {day.events.length > 0 && (
             <View style={styles.events}>
               {day.events.map((ev, i) => (
-                <View key={i} style={styles.eventRow}>
-                  <View style={[styles.eventDot, { backgroundColor: dotColor(ev.type) }]} />
-                  <View style={styles.eventContent}>
-                    <Text style={[styles.eventTime, { color: theme.textSecondary }]}>{ev.time}</Text>
-                    <Text style={[styles.eventName, { color: theme.text }]}>{ev.name}</Text>
-                    {ev.description ? (
-                      <Text style={[styles.eventDesc, { color: theme.textSecondary }]}>{ev.description}</Text>
-                    ) : null}
-                  </View>
-                </View>
+                <EventRow key={i} event={ev} theme={theme} />
               ))}
             </View>
           )}
         </View>
       ))}
     </ScrollView>
+  );
+}
+
+function EventRow({ event, theme }: { event: TripEvent; theme: ReturnType<typeof import('@/hooks/use-theme').useTheme> }) {
+  const openMaps = () => {
+    const encoded = encodeURIComponent(event.placeGuide ?? '');
+    Linking.openURL(`maps:?q=${encoded}`);
+  };
+
+  return (
+    <View style={[styles.eventRow, { borderTopColor: theme.backgroundElement }]}>
+      <View style={[styles.eventDot, { backgroundColor: dotColor(event.type) }]} />
+      <View style={styles.eventContent}>
+        <View style={styles.eventTopRow}>
+          <Text style={[styles.eventTime, { color: theme.textSecondary }]}>{event.time}</Text>
+          {event.type === 'booked' && event.showBookingBadge !== false && (
+            <View style={styles.bookedBadge}>
+              <Text style={styles.bookedBadgeText}>✓ Prenotato</Text>
+            </View>
+          )}
+        </View>
+        <Text style={[styles.eventName, { color: theme.text }]}>{event.name}</Text>
+        {event.description ? (
+          <Text style={[styles.eventDesc, { color: theme.textSecondary }]}>{event.description}</Text>
+        ) : null}
+        {event.tip ? (
+          <View style={styles.tipRow}>
+            <Text style={styles.tipText}>💡 {event.tip}</Text>
+          </View>
+        ) : null}
+        {event.alert ? (
+          <View style={styles.alertRow}>
+            <Text style={styles.alertText}>⚠️ {event.alert}</Text>
+          </View>
+        ) : null}
+        {event.placeGuide ? (
+          <Pressable onPress={openMaps} style={styles.guidamiBtn}>
+            <SymbolView name="map.fill" size={13} tintColor="#007AFF" />
+            <Text style={styles.guidamiText}>Guidami</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
@@ -100,6 +145,33 @@ function dotColor(type: string): string {
   }
 }
 
+function dayNumberColor(style: string): string {
+  switch (style) {
+    case 'special': return '#C8102E';
+    case 'gold': return '#C5A028';
+    case 'last': return '#444444';
+    default: return '#012169';
+  }
+}
+
+function badgeBg(color: string): string {
+  switch (color) {
+    case 'red': return '#FEE2E2';
+    case 'gold': return '#FEF3C7';
+    case 'blue': return '#DBEAFE';
+    default: return '#F3F4F6';
+  }
+}
+
+function badgeFg(color: string): string {
+  switch (color) {
+    case 'red': return '#991B1B';
+    case 'gold': return '#92400E';
+    case 'blue': return '#1E40AF';
+    default: return '#374151';
+  }
+}
+
 const styles = StyleSheet.create({
   center: {
     flex: 1,
@@ -108,9 +180,8 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     padding: Spacing.five,
   },
-  errorText: { fontSize: 16 },
-  emptyTitle: { fontSize: 20, fontWeight: '600' },
-  emptyHint: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  centerTitle: { fontSize: 20, fontWeight: '600' },
+  centerText: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
   list: {
     padding: Spacing.three,
     gap: Spacing.three,
@@ -126,13 +197,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   dayNumber: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   dayDate: {
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: '600',
   },
   dayTitle: {
     fontSize: 20,
@@ -142,38 +214,110 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: Spacing.two,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
   events: {
     marginTop: Spacing.two,
-    gap: Spacing.two,
+    gap: 0,
   },
   eventRow: {
     flexDirection: 'row',
     gap: Spacing.two,
     paddingTop: Spacing.two,
+    paddingBottom: 2,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.08)',
+    borderTopColor: 'rgba(0,0,0,0.07)',
+    marginTop: Spacing.two,
   },
   eventDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginTop: 6,
+    marginTop: 5,
     flexShrink: 0,
   },
   eventContent: {
     flex: 1,
+    gap: 4,
+  },
+  eventTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   eventTime: {
     fontSize: 12,
     fontWeight: '500',
   },
+  bookedBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  bookedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#991B1B',
+  },
   eventName: {
     fontSize: 15,
     fontWeight: '600',
+    lineHeight: 20,
   },
   eventDesc: {
     fontSize: 13,
-    marginTop: 2,
     lineHeight: 18,
+  },
+  tipRow: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  tipText: {
+    fontSize: 12,
+    color: '#92400E',
+    lineHeight: 17,
+  },
+  alertRow: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  alertText: {
+    fontSize: 12,
+    color: '#991B1B',
+    lineHeight: 17,
+  },
+  guidamiBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    marginTop: 2,
+  },
+  guidamiText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });
