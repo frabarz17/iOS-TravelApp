@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useGlobalSearchParams, useNavigation } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
 import { tripRepository } from '@/repository/TripRepository';
@@ -10,7 +10,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
 export default function ItinerarioScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
   const navigation = useNavigation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
