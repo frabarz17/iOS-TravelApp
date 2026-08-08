@@ -1,56 +1,87 @@
-# Welcome to your Expo app 👋
+# iOS-TravelApp
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App iOS nativa per la pianificazione e gestione di viaggi di famiglia. Costruita con React Native + Expo.
 
-## Get started
+**Zero backend. Zero account richiesti.** I dati vivono sul tuo iPhone, con iCloud Backup automatico.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## Come funziona
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+Lista viaggi → Seleziona viaggio → Sezioni (Itinerario · Mappa · Metro · Info · Biglietti)
+                                         ↕ editing inline in ogni sezione
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Ogni sezione è sia viewer che editor: tap "Modifica" per editare il contenuto direttamente nella schermata, senza admin separato.
 
-### Other setup steps
+Per collaborare con qualcuno: **Esporta viaggio** → AirDrop/WhatsApp → l'altro importa nell'app, aggiunge le sue modifiche → te lo rimanda → reimporti.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+---
 
-## Learn more
+## Setup sviluppo
 
-To learn more about developing your project with Expo, look at the following resources:
+### 1. Prerequisiti
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- Node.js 18+
+- **Expo Go** installato sull'iPhone dall'App Store (gratuito)
 
-## Join the community
+### 2. Installa dipendenze
 
-Join our community of developers creating universal apps.
+```bash
+cd iOS-TravelApp
+npm install
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 3. Avvia
+
+```bash
+npx expo start
+```
+
+Scansiona il QR code con la fotocamera iPhone (o direttamente da Expo Go) → l'app si apre sul tuo telefono.
+
+---
+
+## Struttura app
+
+| Sezione | Contenuto |
+|---|---|
+| **Itinerario** | Day card con timeline eventi, bottone "Guidami" per navigazione |
+| **Mappa** | Google My Maps embed interattivo |
+| **Metro** | Immagine mappa metro scrollabile |
+| **Info** | Voli + checklist · Convertitore valute · Supermercati · Info pratiche |
+| **Biglietti** | Card PDF biglietti, visualizzazione nativa |
+
+---
+
+## Stack tecnico
+
+| Componente | Scelta |
+|---|---|
+| Framework | React Native + Expo 57 |
+| Navigazione | Expo Router (file-based) |
+| Storage | `expo-file-system` (locale) + iCloud Backup automatico |
+| Maps | `react-native-maps` (MapKit iOS) |
+| Valute | Frankfurter API (fallback offline) |
+| Tipi | TypeScript strict |
+
+---
+
+## Schema dati
+
+I viaggi sono salvati come file JSON sul device. Lo schema è compatibile con quello della PWA web (`~/claude/TravelApp`) — i trip.json esistenti sono importabili direttamente.
+
+---
+
+## Git workflow
+
+```bash
+git add src/ assets/ app.json
+git commit -m "descrizione"
+git push  # → github.com/frabarz17/iOS-TravelApp
+```
+
+---
+
+*Progetto personale — Francesco Barzanò*
