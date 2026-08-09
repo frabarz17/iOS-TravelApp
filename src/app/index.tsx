@@ -19,6 +19,7 @@ import { SymbolView } from 'expo-symbols';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { tripRepository } from '@/repository/TripRepository';
 import { Trip, TripSummary } from '@/types/trip';
@@ -348,6 +349,14 @@ function TripEditModal({
   const [cityResults, setCityResults] = useState<NominatimResult[]>([]);
   const [citySearching, setCitySearching] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [activeDatePicker, setActiveDatePicker] = useState<'start' | 'end' | null>(null);
+
+  const dateStringToDate = (s: string): Date => {
+    const d = new Date(s || Date.now());
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+  const dateToDateString = (d: Date): string =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   useEffect(() => {
     if (modal.tripId) {
@@ -470,29 +479,49 @@ function TripEditModal({
           {/* Date */}
           <Text style={[tmStyles.label, { color: theme.textSecondary }]}>DATE</Text>
           <View style={tmStyles.dateRow}>
-            <View style={[tmStyles.field, tmStyles.dateField, { backgroundColor: theme.backgroundElement }]}>
+            <Pressable
+              style={[tmStyles.field, tmStyles.dateField, { backgroundColor: theme.backgroundElement }]}
+              onPress={() => setActiveDatePicker(p => p === 'start' ? null : 'start')}
+            >
               <Text style={[tmStyles.dateHint, { color: theme.textSecondary }]}>Dal</Text>
-              <TextInput
-                style={[tmStyles.input, { color: theme.text }]}
-                value={startDate}
-                onChangeText={setStartDate}
-                placeholder="AAAA-MM-GG"
-                placeholderTextColor={theme.textSecondary}
-                keyboardType="numbers-and-punctuation"
-              />
-            </View>
-            <View style={[tmStyles.field, tmStyles.dateField, { backgroundColor: theme.backgroundElement }]}>
+              <Text style={[tmStyles.dateValue, { color: startDate ? theme.text : theme.textSecondary }]}>
+                {startDate ? formatDate(startDate) : 'Seleziona'}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[tmStyles.field, tmStyles.dateField, { backgroundColor: theme.backgroundElement }]}
+              onPress={() => setActiveDatePicker(p => p === 'end' ? null : 'end')}
+            >
               <Text style={[tmStyles.dateHint, { color: theme.textSecondary }]}>Al</Text>
-              <TextInput
-                style={[tmStyles.input, { color: theme.text }]}
-                value={endDate}
-                onChangeText={setEndDate}
-                placeholder="AAAA-MM-GG"
-                placeholderTextColor={theme.textSecondary}
-                keyboardType="numbers-and-punctuation"
+              <Text style={[tmStyles.dateValue, { color: endDate ? theme.text : theme.textSecondary }]}>
+                {endDate ? formatDate(endDate) : 'Seleziona'}
+              </Text>
+            </Pressable>
+          </View>
+          {activeDatePicker && (
+            <View style={[tmStyles.field, { backgroundColor: theme.backgroundElement, padding: 0, overflow: 'hidden' }]}>
+              <View style={tmStyles.pickerDoneRow}>
+                <Text style={[tmStyles.pickerDoneLabel, { color: theme.textSecondary }]}>
+                  {activeDatePicker === 'start' ? 'Dal' : 'Al'}
+                </Text>
+                <Pressable onPress={() => setActiveDatePicker(null)}>
+                  <Text style={tmStyles.pickerDoneText}>Fatto</Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={dateStringToDate(activeDatePicker === 'start' ? startDate : endDate)}
+                mode="date"
+                display="spinner"
+                onChange={(_, date) => {
+                  if (!date) return;
+                  const s = dateToDateString(date);
+                  if (activeDatePicker === 'start') setStartDate(s);
+                  else setEndDate(s);
+                }}
+                locale="it"
               />
             </View>
-          </View>
+          )}
 
           {/* Città */}
           <Text style={[tmStyles.label, { color: theme.textSecondary }]}>CITTÀ</Text>
@@ -614,6 +643,10 @@ const tmStyles = StyleSheet.create({
   dateRow: { flexDirection: 'row', gap: Spacing.two },
   dateField: { flex: 1 },
   dateHint: { fontSize: 11, fontWeight: '600', paddingTop: 8 },
+  dateValue: { fontSize: 16, fontWeight: '600', paddingVertical: 10 },
+  pickerDoneRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10 },
+  pickerDoneLabel: { fontSize: 13, fontWeight: '600' },
+  pickerDoneText: { fontSize: 15, fontWeight: '600', color: '#007AFF' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one, marginBottom: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20 },
   chipText: { fontSize: 14, fontWeight: '500' },

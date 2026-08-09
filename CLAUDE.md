@@ -18,6 +18,7 @@ L'app sostituisce la PWA TravelApp (in `~/claude/TravelApp`) con un'esperienza n
 | 3 | Viewer itinerario (giorni + eventi + Guidami geolocalizzato) | ✅ Completata |
 | 4 | Viewer mappa + metro + info (5 sottosezioni) + biglietti + PDF | ✅ Completata |
 | 5a | Editing itinerario (day cards, event edit modal, trip edit modal) | ✅ Completata |
+| 5c | Vista calendario giornaliero con drag & resize + date/time picker | ✅ Completata |
 | 5b | Editing inline Info, Mappa, Metro | ⏳ Da fare |
 | 6 | Export/Import JSON (collaborazione) | ⏳ Da fare |
 | 7 | Polish iOS + offline + app icon | ⏳ Da fare |
@@ -38,6 +39,9 @@ L'app sostituisce la PWA TravelApp (in `~/claude/TravelApp`) con un'esperienza n
 | PDF share | `expo-sharing` | Share sheet iOS |
 | Foto | `expo-image-picker` | Cover photo viaggio + cover photo giorno |
 | Icone | `expo-symbols` | SF Symbols iOS-native |
+| Gesture drag | `react-native-gesture-handler ~2.32.0` | Richiede `GestureHandlerRootView` in `_layout.tsx` |
+| Animazioni | `react-native-reanimated 4.5.1` | `useSharedValue` + `useAnimatedStyle` per calendario |
+| Date/time picker | `@react-native-community/datetimepicker` | Spinner nativo iOS; richiede `--clear` dopo install |
 | Tipi | TypeScript strict | Interfacce in `src/types/trip.ts` |
 
 ## Struttura file
@@ -114,6 +118,28 @@ Quando un evento ha `isBooked: true` e l'utente carica un PDF, `handleSaveEvent`
 - **Viaggio**: `trips/{id}/cover.jpg` — via `TripRepository.getCoverPhotoUri`
 - **Giorno**: `trips/{id}/day-covers/day-{n}.jpg` — via `TripRepository.getDayCoverPhotoUri`
 
+## Architettura vista calendario (itinerario.tsx)
+
+**Toggle Lista | Calendario** dentro `DayDetailSheet`. In modalità Calendario la ScrollView esterna è sostituita da `DayCalendarView` con la propria ScrollView interna.
+
+**Componenti:**
+- `DayCalendarView` — ScrollView verticale 24h (`HOUR_HEIGHT = 64px/ora`), `scrollEnabled={!isDragging}` durante drag
+- `CalendarEventBlock` — blocco animato per evento; due gesture: `movePan` (sposta) e `resizePan` (ridimensiona handle inferiore)
+- `CurrentTimeIndicator` — linea rossa con pallino, aggiornata ogni 60s
+
+**Helper functions (module-level):**
+- `timeToPx(time)` — HH:MM → pixel dall'inizio della griglia
+- `pxToTime(px)` — pixel → HH:MM con snap a 15 min
+- `defaultBlockHeight(event)` — altezza blocco: da `timeTo` se presente, altrimenti 45 min default
+
+**Logica onMove:** calcola `durationPx = timeToPx(timeTo) - timeToPx(time)` e sposta sia `time` che `timeTo` dello stesso delta → durata mantenuta. Controlla overlap con tutti gli altri eventi prima di salvare.
+
+**Logica onResize:** modifica solo `timeTo`. Controlla overlap e minimo 15 min.
+
+**Gesture e thread:** tutti i `Gesture.Pan()` usano `.runOnJS(true)` — indispensabile. Senza di esso le callback girano sul UI thread e crashano chiamando setter React (vedi gotcha 10).
+
+---
+
 ## Regole critiche — NON SBAGLIARE
 
 ### 1. useGlobalSearchParams nei tab screen
@@ -179,6 +205,26 @@ Nessuna chiamata a GitHub API, Vercel, o altri servizi per i dati. L'unica API e
 ### 9. TripRepository è l'unico accesso allo storage
 
 La UI non chiama mai `expo-file-system` direttamente. Tutto passa per `tripRepository`.
+
+### 10. Gesture Handler: .runOnJS(true) obbligatorio
+
+I `Gesture.Pan()` usati nella vista calendario devono avere `.runOnJS(true)`. Senza di esso le callback `onBegin`/`onEnd` girano sul **UI thread** e chiamando setter React (es. `setIsDragging(true)`) causano un crash immediato al primo touch.
+
+```typescript
+const pan = Gesture.Pan()
+  .runOnJS(true)   // ← obbligatorio
+  .activeOffsetY([-6, 6])
+  .onBegin(() => { onDragStart(); })  // sicuro: JS thread
+  .onEnd((e) => { onMove(idx, newTime); });
+```
+
+### 11. GestureHandlerRootView in _layout.tsx
+
+`react-native-gesture-handler` richiede `GestureHandlerRootView` come wrapper radice per funzionare dentro le `Modal` di React Native. Già presente in `src/app/_layout.tsx`. Non rimuoverlo.
+
+### 12. DateTimePicker: --clear dopo install
+
+`@react-native-community/datetimepicker` è un modulo nativo. Dopo `npx expo install @react-native-community/datetimepicker` serve sempre `npx expo start --clear`.
 
 ## Schema dati — campi rilevanti per l'editing
 

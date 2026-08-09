@@ -26,16 +26,22 @@ Per collaborare con qualcuno: **Esporta viaggio** → AirDrop/WhatsApp → l'alt
 ### Home — Lista viaggi
 - Card viaggio con foto cover personalizzabile, nome, città visitate e date
 - Bottone matita (cerchio traslucido) su ogni card → modal di editing completo
-- Modal viaggio: nome, sottotitolo, date, città (ricerca Nominatim), foto cover
+- Modal viaggio: nome, sottotitolo, **selettore data nativo iOS** (spinner giorno/mese/anno), città (ricerca Nominatim), foto cover
 - FAB `+` per creare nuovo viaggio
 - Caricamento viaggio di esempio (London 2026)
 
 ### Giorni & Itinerario
 - **Visual calendar**: ogni giorno è una card full-width con foto di sfondo personalizzabile e gradiente
-- Tap sulla card → **DayDetailSheet** con timeline eventi del giorno
+- Tap sulla card → **DayDetailSheet** con toggle **Lista | Calendario**
+- **Vista Lista**: timeline eventi classica con striscia colorata laterale per tipo
+- **Vista Calendario**: griglia verticale 24h con blocchi colorati posizionati per orario
+  - Drag del blocco → sposta l'attività (mantiene durata, snap a 15 min, blocco overlap prevention)
+  - Drag handle in basso → ridimensiona durata (`timeTo`), con overlap prevention
+  - Indicatore ora corrente (linea rossa), auto-scroll al primo evento all'apertura
 - **Tipi evento**: Visita · Pasto · Spostamento (con striscia colorata laterale)
 - **Prenotato**: toggle su Visita e Pasto — attiva upload PDF biglietto, sincronizzato automaticamente nella sezione Biglietti
-- **Guidami**: ricerca luogo via Nominatim → coordinate precise → Apple Maps `maps://?ll=lat,lon`
+- **Guidami**: auto-ricerca luogo mentre si digita (debounce 650ms) via Nominatim → coordinate precise → Apple Maps `maps://?ll=lat,lon`; risultati a 2 righe (nome + città · paese)
+- **Selettori nativi**: orario con spinner iOS (intervallo 5 min), campo "A" opzionale con default +1h
 - Editing completo: crea/modifica/elimina eventi, modifica intestazione giorno
 - Supporto eventi alternativi (stesso orario, utente sceglie)
 
@@ -100,6 +106,8 @@ npx tsc --noEmit
 | PDF import | `expo-document-picker` (Files app picker nativo) |
 | Foto cover | `expo-image-picker` |
 | Icone | `expo-symbols` (SF Symbols iOS) |
+| Gesture drag/resize | `react-native-gesture-handler` + `react-native-reanimated` |
+| Date/time picker | `@react-native-community/datetimepicker` (spinner nativo iOS) |
 | Tipi | TypeScript strict |
 
 ---

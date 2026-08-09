@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { tripRepository } from '@/repository/TripRepository';
 import { Trip, TripDay, TripEvent, EventType, Ticket } from '@/types/trip';
@@ -46,6 +50,29 @@ function guidamiUrl(ev: { placeGuide?: string; placeLat?: number; placeLon?: num
 interface EditingEvent {
   eventIdx: number | null; // null = nuovo evento
   draft: TripEvent;
+}
+
+// ─── Calendar helpers ─────────────────────────────────────────────────────────
+
+const HOUR_HEIGHT = 64;
+
+function timeToPx(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return (h + m / 60) * HOUR_HEIGHT;
+}
+
+function pxToTime(px: number): string {
+  const snapped = Math.round(Math.max(0, Math.min(px, HOUR_HEIGHT * 23.75)) / (HOUR_HEIGHT / 4)) * (HOUR_HEIGHT / 4);
+  const totalMinutes = Math.round(snapped / HOUR_HEIGHT * 60);
+  const h = Math.min(23, Math.floor(totalMinutes / 60));
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function defaultBlockHeight(event: TripEvent): number {
+  if (!event.timeTo) return HOUR_HEIGHT * 0.75;
+  const h = timeToPx(event.timeTo) - timeToPx(event.time);
+  return Math.max(HOUR_HEIGHT / 4, h);
 }
 
 // ─── Screen principale ────────────────────────────────────────────────────────
@@ -269,9 +296,18 @@ function DayCard({
         {day.title ? (
           <Text style={styles.dayCardTitle} numberOfLines={1}>{day.title}</Text>
         ) : null}
-        {day.zone ? (
-          <Text style={styles.dayCardZone} numberOfLines={1}>📍 {day.zone}</Text>
-        ) : null}
+        {(() => {
+          const places = [...new Set(
+            day.events
+              .filter(ev => ev.placeGuide)
+              .map(ev => ev.placeGuide!)
+          )].slice(0, 2);
+          return places.length > 0 ? (
+            <Text style={styles.dayCardZone} numberOfLines={1}>
+              📍 {places.join('  ·  ')}
+            </Text>
+          ) : null;
+        })()}
       </View>
 
       {/* Event count pill */}
@@ -281,6 +317,194 @@ function DayCard({
         </View>
       )}
     </Pressable>
+  );
+}
+
+// ─── Calendar components ──────────────────────────────────────────────────────
+
+function CalendarEventBlock({
+  event,
+  eventIdx,
+  theme,
+  onMove,
+  onResize,
+  onTap,
+  onDragStart,
+  onDragEnd,
+}: {
+  event: TripEvent;
+  eventIdx: number;
+  theme: TH;
+  onMove: (idx: number, newTime: string) => void;
+  onResize: (idx: number, newTimeTo: string) => void;
+  onTap: (idx: number) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+}) {
+  const baseTop = timeToPx(event.time);
+  const baseHeight = defaultBlockHeight(event);
+  const ty = useSharedValue(0);
+  const heightDelta = useSharedValue(0);
+
+  // .runOnJS(true) → tutte le callback girano sul JS thread, safe per setter React
+  const movePan = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetY([-6, 6])
+    .onBegin(() => {
+      ty.value = 0;
+      onDragStart();
+    })
+    .onUpdate((e) => {
+      ty.value = e.translationY;
+    })
+    .onEnd((e) => {
+      const newTime = pxToTime(baseTop + e.translationY);
+      ty.value = withSpring(0, { duration: 200 });
+      onDragEnd();
+      onMove(eventIdx, newTime);
+    });
+
+  const resizePan = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetY([-6, 6])
+    .onBegin(() => {
+      heightDelta.value = 0;
+      onDragStart();
+    })
+    .onUpdate((e) => {
+      heightDelta.value = e.translationY;
+    })
+    .onEnd((e) => {
+      const newTimeTo = pxToTime(baseTop + baseHeight + e.translationY);
+      heightDelta.value = withSpring(0, { duration: 200 });
+      onDragEnd();
+      onResize(eventIdx, newTimeTo);
+    });
+
+  const blockAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: ty.value }],
+    height: Math.max(HOUR_HEIGHT / 4, baseHeight + heightDelta.value),
+  }));
+
+  const accentColor = dotColor(event);
+  const bgColor = accentColor + '22';
+
+  return (
+    <GestureDetector gesture={movePan}>
+      <Animated.View
+        style={[
+          styles.calBlock,
+          blockAnimStyle,
+          {
+            top: baseTop,
+            backgroundColor: bgColor,
+            borderLeftColor: accentColor,
+          },
+        ]}
+      >
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={() => onTap(eventIdx)}
+        >
+          <Text style={[styles.calBlockName, { color: theme.text }]} numberOfLines={1}>{event.name}</Text>
+          <Text style={[styles.calBlockTime, { color: theme.textSecondary }]}>
+            {event.time}{event.timeTo ? ` → ${event.timeTo}` : ''}
+          </Text>
+        </Pressable>
+        {/* Resize handle — gesture separata */}
+        <GestureDetector gesture={resizePan}>
+          <View style={styles.calResizeHandle}>
+            <View style={[styles.calResizeBar, { backgroundColor: accentColor + '88' }]} />
+          </View>
+        </GestureDetector>
+      </Animated.View>
+    </GestureDetector>
+  );
+}
+
+function CurrentTimeIndicator() {
+  const [topPx, setTopPx] = useState(() => {
+    const now = new Date();
+    return timeToPx(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      setTopPx(timeToPx(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`));
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <View style={{ position: 'absolute', top: topPx, left: 44, right: 8, height: 0 }}>
+      <View style={styles.calNowDot} />
+      <View style={styles.calNowLine} />
+    </View>
+  );
+}
+
+function DayCalendarView({
+  day,
+  theme,
+  insets,
+  onMove,
+  onResize,
+  onTap,
+}: {
+  day: TripDay;
+  theme: TH;
+  insets: ReturnType<typeof import('react-native-safe-area-context').useSafeAreaInsets>;
+  onMove: (idx: number, newTime: string) => void;
+  onResize: (idx: number, newTimeTo: string) => void;
+  onTap: (idx: number) => void;
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (day.events.length > 0) {
+      const firstTop = timeToPx(day.events[0].time);
+      setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(0, firstTop - HOUR_HEIGHT * 1.5), animated: true }), 150);
+    }
+  }, []);
+
+  return (
+    <ScrollView
+      ref={scrollRef}
+      scrollEnabled={!isDragging}
+      showsVerticalScrollIndicator={false}
+      style={{ marginHorizontal: -Spacing.three }}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+    >
+      <View style={{ height: HOUR_HEIGHT * 24, position: 'relative' }}>
+        {/* Griglia ore */}
+        {Array.from({ length: 24 }).map((_, h) => (
+          <View key={h} style={[styles.calHourRow, { top: h * HOUR_HEIGHT }]}>
+            <Text style={[styles.calHourLabel, { color: theme.textSecondary }]}>
+              {String(h).padStart(2, '0')}:00
+            </Text>
+            <View style={[styles.calHourLine, { backgroundColor: theme.backgroundElement }]} />
+          </View>
+        ))}
+        {/* Indicatore ora corrente */}
+        <CurrentTimeIndicator />
+        {/* Blocchi evento */}
+        {day.events.map((ev, i) => (
+          <CalendarEventBlock
+            key={i}
+            event={ev}
+            eventIdx={i}
+            theme={theme}
+            onMove={onMove}
+            onResize={onResize}
+            onTap={onTap}
+            onDragStart={() => setIsDragging(true)}
+            onDragEnd={() => setIsDragging(false)}
+          />
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -307,6 +531,7 @@ function DayDetailSheet({
 }) {
   const [editing, setEditing] = useState<EditingEvent | null>(null);
   const [editingDayHeader, setEditingDayHeader] = useState(false);
+  const [calView, setCalView] = useState<'list' | 'calendar'>('list');
   const [gradStart, gradEnd] = dayGradient(day.style);
 
   const handleDeleteEvent = (eventIdx: number) => {
@@ -358,32 +583,106 @@ function DayDetailSheet({
         </View>
 
         {/* Corpo */}
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[styles.sheetBody, { paddingBottom: insets.bottom + Spacing.five }]}
-          keyboardShouldPersistTaps="handled"
-        >
-          {day.zone ? (
-            <View style={styles.sheetZoneRow}>
-              <SymbolView name="location.fill" size={12} tintColor={theme.textSecondary} />
-              <Text style={[styles.sheetZone, { color: theme.textSecondary }]}>{day.zone}</Text>
+        <View style={{ flex: 1 }}>
+          {/* Header fisso: zone + toggle */}
+          <View style={{ paddingHorizontal: Spacing.three, paddingTop: Spacing.two, gap: Spacing.one }}>
+            {day.zone ? (
+              <View style={styles.sheetZoneRow}>
+                <SymbolView name="location.fill" size={12} tintColor={theme.textSecondary} />
+                <Text style={[styles.sheetZone, { color: theme.textSecondary }]}>{day.zone}</Text>
+              </View>
+            ) : null}
+            {/* Toggle Lista / Calendario */}
+            <View style={[styles.calToggleRow, { backgroundColor: theme.backgroundElement }]}>
+              {(['list', 'calendar'] as const).map(v => (
+                <Pressable
+                  key={v}
+                  onPress={() => setCalView(v)}
+                  style={[
+                    styles.calToggleBtn,
+                    calView === v && [styles.calToggleBtnActive, { backgroundColor: theme.background }],
+                  ]}
+                >
+                  <Text style={[styles.calToggleBtnText, { color: calView === v ? '#007AFF' : theme.textSecondary }]}>
+                    {v === 'list' ? 'Lista' : 'Calendario'}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
-          ) : null}
+          </View>
 
-          <EventList
-            day={day}
-            theme={theme}
-            onEdit={(idx) => setEditing({ eventIdx: idx, draft: { ...day.events[idx] } })}
-          />
-
-          <Pressable
-            onPress={() => setEditing({ eventIdx: null, draft: emptyEvent() })}
-            style={[styles.addBtn, { borderColor: theme.backgroundElement }]}
-          >
-            <SymbolView name="plus.circle" size={18} tintColor="#007AFF" />
-            <Text style={styles.addBtnText}>Aggiungi attività</Text>
-          </Pressable>
-        </ScrollView>
+          {calView === 'list' ? (
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingHorizontal: Spacing.three, paddingBottom: insets.bottom + Spacing.five, gap: Spacing.two, paddingTop: Spacing.two }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <EventList
+                day={day}
+                theme={theme}
+                onEdit={(idx) => setEditing({ eventIdx: idx, draft: { ...day.events[idx] } })}
+              />
+              <Pressable
+                onPress={() => setEditing({ eventIdx: null, draft: emptyEvent() })}
+                style={[styles.addBtn, { borderColor: theme.backgroundElement }]}
+              >
+                <SymbolView name="plus.circle" size={18} tintColor="#007AFF" />
+                <Text style={styles.addBtnText}>Aggiungi attività</Text>
+              </Pressable>
+            </ScrollView>
+          ) : (
+            <View style={{ flex: 1 }}>
+              <DayCalendarView
+                day={day}
+                theme={theme}
+                insets={insets}
+                onMove={(idx, newTime) => {
+                  const ev = day.events[idx];
+                  // Mantieni la durata originale spostando anche timeTo dello stesso delta
+                  const durationPx = ev.timeTo
+                    ? timeToPx(ev.timeTo) - timeToPx(ev.time)
+                    : HOUR_HEIGHT * 0.75;
+                  const newTimeTo = ev.timeTo ? pxToTime(timeToPx(newTime) + durationPx) : ev.timeTo;
+                  // Controlla sovrapposizione con altri eventi
+                  const newStartPx = timeToPx(newTime);
+                  const newEndPx = newStartPx + durationPx;
+                  const overlaps = day.events.some((other, i) => {
+                    if (i === idx) return false;
+                    const otherStart = timeToPx(other.time);
+                    const otherEnd = otherStart + defaultBlockHeight(other);
+                    return newStartPx < otherEnd && newEndPx > otherStart;
+                  });
+                  if (!overlaps) {
+                    onSaveEvent(idx, { ...ev, time: newTime, timeTo: newTimeTo });
+                  }
+                }}
+                onResize={(idx, newTimeTo) => {
+                  const ev = day.events[idx];
+                  const newEndPx = timeToPx(newTimeTo);
+                  const startPx = timeToPx(ev.time);
+                  if (newEndPx <= startPx + HOUR_HEIGHT / 4) return; // min 15 min
+                  const overlaps = day.events.some((other, i) => {
+                    if (i === idx) return false;
+                    const otherStart = timeToPx(other.time);
+                    const otherEnd = otherStart + defaultBlockHeight(other);
+                    return startPx < otherEnd && newEndPx > otherStart;
+                  });
+                  if (!overlaps) {
+                    onSaveEvent(idx, { ...ev, timeTo: newTimeTo });
+                  }
+                }}
+                onTap={(idx) => setEditing({ eventIdx: idx, draft: { ...day.events[idx] } })}
+              />
+              <Pressable
+                onPress={() => setEditing({ eventIdx: null, draft: emptyEvent() })}
+                style={[styles.addBtn, { borderColor: theme.backgroundElement, marginHorizontal: Spacing.three, marginBottom: insets.bottom + Spacing.two }]}
+              >
+                <SymbolView name="plus.circle" size={18} tintColor="#007AFF" />
+                <Text style={styles.addBtnText}>Aggiungi attività</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
 
         {/* Modal edit evento — dentro la sheet per stacking corretto */}
         {editing && (
@@ -639,6 +938,8 @@ function EventEditModal({
   const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [activeTimePicker, setActiveTimePicker] = useState<'start' | 'end' | null>(null);
 
   const pickTicket = async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -662,17 +963,17 @@ function EventEditModal({
     }
   };
 
-  const searchPlace = async () => {
-    if (!searchQuery.trim()) return;
+  const searchPlace = async (query = searchQuery) => {
+    if (!query.trim()) return;
     setIsSearching(true);
     setSearchResults([]);
     try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5`;
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`;
       const resp = await fetch(url, { headers: { 'User-Agent': 'iOS-TravelApp/1.0' } });
       const data: NominatimResult[] = await resp.json();
       setSearchResults(data);
     } catch {
-      Alert.alert('Errore', 'Impossibile cercare il luogo. Controlla la connessione.');
+      // silently ignore network errors during auto-search
     } finally {
       setIsSearching(false);
     }
@@ -764,32 +1065,76 @@ function EventEditModal({
           <SectionLabel label="Orario" theme={theme} />
           <View style={[styles.fieldCard, { backgroundColor: theme.backgroundElement }]}>
             <View style={styles.timeRow}>
-              <View style={{ flex: 1 }}>
+              {/* Orario inizio */}
+              <Pressable
+                style={{ flex: 1 }}
+                onPress={() => setActiveTimePicker(p => p === 'start' ? null : 'start')}
+              >
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Da</Text>
-                <TextInput
-                  style={[styles.timeInput, { color: theme.text }]}
-                  value={draft.time}
-                  onChangeText={(v) => set({ time: formatTimeInput(v) })}
-                  placeholder="09:00"
-                  placeholderTextColor={theme.textSecondary}
-                  keyboardType="numbers-and-punctuation"
-                  maxLength={5}
-                />
-              </View>
+                <View style={[styles.timePickerBtn, activeTimePicker === 'start' && { borderColor: '#007AFF', borderWidth: 1.5 }]}>
+                  <Text style={[styles.timePickerBtnText, { color: theme.text }]}>{draft.time || '—'}</Text>
+                  <SymbolView name="clock" size={13} tintColor={theme.textSecondary} />
+                </View>
+              </Pressable>
               <Text style={[styles.timeSep, { color: theme.textSecondary }]}>→</Text>
+              {/* Orario fine */}
               <View style={{ flex: 1 }}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>A (opzionale)</Text>
-                <TextInput
-                  style={[styles.timeInput, { color: theme.text }]}
-                  value={draft.timeTo ?? ''}
-                  onChangeText={(v) => set({ timeTo: v ? formatTimeInput(v) : undefined })}
-                  placeholder="11:00"
-                  placeholderTextColor={theme.textSecondary}
-                  keyboardType="numbers-and-punctuation"
-                  maxLength={5}
-                />
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>A</Text>
+                <View style={styles.timeRow}>
+                  <Pressable
+                    style={{ flex: 1 }}
+                    onPress={() => {
+                      if (!draft.timeTo) {
+                        // imposta default: inizio + 1h
+                        const base = timeToDate(draft.time || '09:00');
+                        base.setHours(base.getHours() + 1);
+                        set({ timeTo: dateToTime(base) });
+                      }
+                      setActiveTimePicker(p => p === 'end' ? null : 'end');
+                    }}
+                  >
+                    <View style={[styles.timePickerBtn, activeTimePicker === 'end' && { borderColor: '#007AFF', borderWidth: 1.5 }]}>
+                      <Text style={[styles.timePickerBtnText, { color: draft.timeTo ? theme.text : theme.textSecondary }]}>
+                        {draft.timeTo || 'Opzionale'}
+                      </Text>
+                      <SymbolView name="clock" size={13} tintColor={theme.textSecondary} />
+                    </View>
+                  </Pressable>
+                  {draft.timeTo && (
+                    <Pressable
+                      onPress={() => { set({ timeTo: undefined }); setActiveTimePicker(null); }}
+                      hitSlop={10}
+                      style={{ paddingLeft: 6, justifyContent: 'center' }}
+                    >
+                      <SymbolView name="xmark.circle.fill" size={16} tintColor={theme.textSecondary} />
+                    </Pressable>
+                  )}
+                </View>
               </View>
             </View>
+            {/* Picker inline */}
+            {activeTimePicker && (
+              <View>
+                <View style={styles.pickerDoneRow}>
+                  <Pressable onPress={() => setActiveTimePicker(null)}>
+                    <Text style={styles.pickerDoneText}>Fatto</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={activeTimePicker === 'start'
+                    ? timeToDate(draft.time)
+                    : timeToDate(draft.timeTo ?? draft.time)}
+                  mode="time"
+                  display="spinner"
+                  minuteInterval={5}
+                  onChange={(_, date) => {
+                    if (!date) return;
+                    if (activeTimePicker === 'start') set({ time: dateToTime(date) });
+                    else set({ timeTo: dateToTime(date) });
+                  }}
+                />
+              </View>
+            )}
           </View>
 
           {/* Titolo */}
@@ -882,31 +1227,35 @@ function EventEditModal({
                   onChangeText={(v) => {
                     setSearchQuery(v);
                     set({ placeGuide: v || undefined, placeLat: undefined, placeLon: undefined });
+                    setSearchResults([]);
+                    if (searchTimer.current) clearTimeout(searchTimer.current);
+                    if (!v.trim()) { setIsSearching(false); return; }
+                    setIsSearching(true);
+                    searchTimer.current = setTimeout(() => searchPlace(v), 650);
                   }}
                   placeholder="es. Buckingham Palace, London"
                   placeholderTextColor={theme.textSecondary}
-                  onSubmitEditing={searchPlace}
                   returnKeyType="search"
+                  onSubmitEditing={() => {
+                    if (searchTimer.current) clearTimeout(searchTimer.current);
+                    searchPlace(searchQuery);
+                  }}
                 />
-                <Pressable
-                  onPress={searchPlace}
-                  style={[styles.searchBtn, { opacity: searchQuery.trim() ? 1 : 0.4 }]}
-                  disabled={!searchQuery.trim()}
-                >
-                  {isSearching
-                    ? <ActivityIndicator size="small" color="white" />
-                    : <SymbolView name="magnifyingglass" size={15} tintColor="white" />
-                  }
-                </Pressable>
+                {isSearching && (
+                  <ActivityIndicator size="small" color={theme.textSecondary} style={{ marginRight: 4 }} />
+                )}
               </View>
 
               {/* Risultati Nominatim */}
               {searchResults.length > 0 && (
                 <View style={styles.searchResults}>
                   {searchResults.map((r, i) => {
-                    const parts = r.display_name.split(',');
-                    const name = parts[0].trim();
-                    const address = parts.slice(1).join(',').trim();
+                    const parts = r.display_name.split(',').map(p => p.trim());
+                    const name = parts[0];
+                    const filtered = parts.slice(1).filter(p => !/^\d/.test(p));
+                    const country = filtered[filtered.length - 1] ?? '';
+                    const region = filtered.slice(-3, -1).join(', ');
+                    const context = region ? `${region} · ${country}` : country;
                     return (
                       <Pressable
                         key={i}
@@ -919,7 +1268,7 @@ function EventEditModal({
                         <SymbolView name="mappin" size={13} tintColor="#007AFF" />
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.searchResultName, { color: theme.text }]} numberOfLines={1}>{name}</Text>
-                          <Text style={[styles.searchResultAddr, { color: theme.textSecondary }]} numberOfLines={1}>{address}</Text>
+                          {context ? <Text style={[styles.searchResultAddr, { color: theme.textSecondary }]} numberOfLines={1}>{context}</Text> : null}
                         </View>
                       </Pressable>
                     );
@@ -1111,10 +1460,16 @@ function isValidTime(t: string): boolean {
   return /^\d{2}:\d{2}$/.test(t);
 }
 
-function formatTimeInput(v: string): string {
-  const digits = v.replace(/\D/g, '');
-  if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
+
+function timeToDate(time: string): Date {
+  const [h, m] = (time || '09:00').split(':').map(Number);
+  const d = new Date();
+  d.setHours(isNaN(h) ? 9 : h, isNaN(m) ? 0 : m, 0, 0);
+  return d;
+}
+
+function dateToTime(date: Date): string {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
 function dotColor(event: TripEvent): string {
@@ -1374,9 +1729,11 @@ const styles = StyleSheet.create({
   },
   dayCardZone: {
     color: 'rgba(255,255,255,0.72)',
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '500',
     marginTop: 2,
+    paddingHorizontal: 28,
+    textAlign: 'center',
   },
   dayCardEventBadge: {
     position: 'absolute',
@@ -1428,7 +1785,115 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Time picker button
+  timePickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: 'rgba(0,0,0,0.04)',
+  },
+  timePickerBtnText: { fontSize: 22, fontWeight: '600', letterSpacing: 0.5 },
+  pickerDoneRow: { alignItems: 'flex-end', paddingHorizontal: 4, paddingTop: 8 },
+  pickerDoneText: { fontSize: 15, fontWeight: '600', color: '#007AFF' },
+
   sheetBody: { padding: Spacing.three, gap: Spacing.two },
   sheetZoneRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: Spacing.one },
   sheetZone: { fontSize: 13 },
+
+  // Calendar view toggle
+  calToggleRow: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    padding: 2,
+    marginBottom: Spacing.two,
+  },
+  calToggleBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  calToggleBtnActive: {
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  calToggleBtnText: { fontSize: 13, fontWeight: '600' },
+
+  // Calendar hour grid
+  calHourRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    height: HOUR_HEIGHT,
+  },
+  calHourLabel: {
+    width: 44,
+    fontSize: 10,
+    fontWeight: '500',
+    paddingTop: 2,
+    textAlign: 'right',
+    paddingRight: 8,
+  },
+  calHourLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    marginTop: 8,
+  },
+
+  // Calendar event block
+  calBlock: {
+    position: 'absolute',
+    left: 48,
+    right: 8,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    paddingHorizontal: 6,
+    paddingTop: 4,
+    paddingBottom: 14,
+    overflow: 'hidden',
+  },
+  calBlockName: { fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  calBlockTime: { fontSize: 10, fontWeight: '500', marginTop: 1 },
+  calResizeHandle: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calResizeBar: {
+    width: 24,
+    height: 3,
+    borderRadius: 2,
+  },
+
+  // Current time indicator
+  calNowLine: {
+    position: 'absolute',
+    left: 4,
+    right: 0,
+    height: 2,
+    backgroundColor: '#FF3B30',
+  },
+  calNowDot: {
+    position: 'absolute',
+    left: 0,
+    top: -3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF3B30',
+  },
 });

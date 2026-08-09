@@ -39,6 +39,8 @@ Per capire lo schema dati, leggi `src/types/trip.ts` e `assets/london-2026.json`
 | `StyleSheet.absoluteFillObject` crasha | Non esiste in questa versione di RN | Usare `StyleSheet.absoluteFill` |
 | Event edit modal non si apre | Modal figlio renderizzato fuori dalla parent Modal | I modal figli vanno DENTRO il subtree JSX della parent Modal |
 | Placeholder testo grande clippato in alto | TextInput con fontSize > 20 ha bisogno di paddingTop extra | `paddingTop` ≥ `fontSize * 0.5` per evitare clipping ascender |
+| Calendario crasha al primo touch | `Gesture.Pan()` senza `.runOnJS(true)` → callback su UI thread → crash su setter React | Aggiungere `.runOnJS(true)` a ogni `Gesture.Pan()` che chiama funzioni JS |
+| Gesture non funzionano dentro Modal | `GestureHandlerRootView` assente nel layout radice | Avvolgere `_layout.tsx` con `GestureHandlerRootView` (già in `src/app/_layout.tsx`) |
 
 ## Architettura editing itinerario
 
@@ -46,12 +48,23 @@ Il pattern dei modal nested è critico — non rompere l'ordine:
 
 ```
 DayDetailSheet (Modal pageSheet)
-├── Lista eventi
+├── Toggle Lista | Calendario
+├── [Lista] EventList + Aggiungi
+├── [Calendario] DayCalendarView
+│   ├── Griglia 24h (HOUR_HEIGHT = 64px/ora)
+│   ├── CalendarEventBlock × N (Gesture.Pan move + resize)
+│   └── CurrentTimeIndicator (linea rossa ora corrente)
 └── EventEditModal (Modal pageSheet) ← DENTRO DayDetailSheet
     └── DayHeaderEditModal (Modal pageSheet) ← DENTRO DayDetailSheet
 ```
 
 Mai spostare `EventEditModal` o `DayHeaderEditModal` fuori dal JSX di `DayDetailSheet`. I Modal React Native non possono apparire sopra altri Modal se non sono nel loro subtree.
+
+### Logica calendario
+
+- `onMove(idx, newTime)` in `DayDetailSheet`: calcola durata originale e sposta anche `timeTo` dello stesso delta; controlla overlap prima di salvare
+- `onResize(idx, newTimeTo)`: solo `timeTo`, controlla overlap e minimo 15 min
+- Blocco snaps back automaticamente a `ty = 0` con `withSpring` in `onEnd`; se il save non avviene (overlap), rimane alla posizione originale
 
 ## Tipo evento: isBooked vs booked
 
