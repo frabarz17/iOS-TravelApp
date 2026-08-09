@@ -21,6 +21,44 @@ Per collaborare con qualcuno: **Esporta viaggio** → AirDrop/WhatsApp → l'alt
 
 ---
 
+## Funzionalità implementate
+
+### Home — Lista viaggi
+- Card viaggio con foto cover personalizzabile, nome, città visitate e date
+- Bottone matita (cerchio traslucido) su ogni card → modal di editing completo
+- Modal viaggio: nome, sottotitolo, date, città (ricerca Nominatim), foto cover
+- FAB `+` per creare nuovo viaggio
+- Caricamento viaggio di esempio (London 2026)
+
+### Giorni & Itinerario
+- **Visual calendar**: ogni giorno è una card full-width con foto di sfondo personalizzabile e gradiente
+- Tap sulla card → **DayDetailSheet** con timeline eventi del giorno
+- **Tipi evento**: Visita · Pasto · Spostamento (con striscia colorata laterale)
+- **Prenotato**: toggle su Visita e Pasto — attiva upload PDF biglietto, sincronizzato automaticamente nella sezione Biglietti
+- **Guidami**: ricerca luogo via Nominatim → coordinate precise → Apple Maps `maps://?ll=lat,lon`
+- Editing completo: crea/modifica/elimina eventi, modifica intestazione giorno
+- Supporto eventi alternativi (stesso orario, utente sceglie)
+
+### Mappa
+- Google My Maps embed interattivo (WebView)
+
+### Metro
+- Immagine/SVG mappa metro a schermo intero, scrollabile, pinch-to-zoom
+
+### Info
+- **Cambio valuta**: convertitore interattivo con importi rapidi e tasso di cambio live (Frankfurter)
+- **Voli**: card andata/ritorno con tracciamento e checklist pre-partenza
+- **Supermercati**: card con logo, orari, indirizzo, Guidami
+- **Info pratiche**: griglia informazioni (corrente, lingua, fuso, emergenze…)
+- **Altro**: trasporti locali (Oyster card, ecc.) + checklist prenotazioni
+
+### Biglietti
+- Import PDF da Files app
+- Viewer PDF inline (WebView WKWebView, rendering nativo iOS)
+- Biglietti collegati agli eventi prenotati (aggiunti automaticamente)
+
+---
+
 ## Setup sviluppo
 
 ### Prerequisiti
@@ -41,21 +79,11 @@ Scansiona il QR code con la fotocamera iPhone → l'app si apre in Expo Go.
 
 > Dopo l'installazione di moduli nativi (es. `react-native-webview`) usare sempre `npx expo start --clear`.
 
----
+### TypeScript check
 
-## Sezioni dell'app
-
-| Sezione | Funzionalità |
-|---|---|
-| **Giorni** | Day card con timeline eventi, badge, bottone "Guidami" → Apple Maps |
-| **Mappa** | Google My Maps embed interattivo con tutti i luoghi del viaggio |
-| **Metro** | Mappa metro a schermo intero, scrollabile a destra/sinistra, pinch-to-zoom |
-| **Info › Cambio** | Convertitore valute interattivo con importi rapidi |
-| **Info › Voli** | Card andata/ritorno con tracciamento in tempo reale e checklist pre-partenza |
-| **Info › Supermercati** | Card con logo, orari, indirizzo, pulsante Guidami |
-| **Info › Info pratiche** | Griglia informazioni pratiche (corrente, fuso orario, ecc.) |
-| **Info › Altro** | Trasporti locali (es. Oyster) + checklist prenotazioni |
-| **Biglietti** | Collega PDF da Files app, apri inline senza uscire dall'app |
+```bash
+npx tsc --noEmit
+```
 
 ---
 
@@ -66,9 +94,11 @@ Scansiona il QR code con la fotocamera iPhone → l'app si apre in Expo Go.
 | Framework | React Native + Expo 57 (React 19, RN 0.86) |
 | Navigazione | Expo Router file-based |
 | Storage | `expo-file-system` (locale) + iCloud Backup automatico |
+| Geocoding | Nominatim (OpenStreetMap) |
 | Mappe / SVG | `react-native-webview` (WKWebView) |
 | PDF viewer | `react-native-webview` (WKWebView renderizza PDF nativamente su iOS) |
 | PDF import | `expo-document-picker` (Files app picker nativo) |
+| Foto cover | `expo-image-picker` |
 | Icone | `expo-symbols` (SF Symbols iOS) |
 | Tipi | TypeScript strict |
 
@@ -77,6 +107,21 @@ Scansiona il QR code con la fotocamera iPhone → l'app si apre in Expo Go.
 ## Schema dati
 
 I viaggi sono salvati come file JSON sul device. Lo schema è compatibile con quello della PWA web (`~/claude/TravelApp`) — i `trip.json` esistenti sono importabili direttamente. Un viaggio di esempio (London 2026) è incluso in `assets/london-2026.json`.
+
+### Struttura storage on-device
+
+```
+Documents/
+└── trips/
+    └── {tripId}/
+        ├── trip.json          ← dati viaggio completi
+        ├── cover.jpg          ← foto cover viaggio (opzionale)
+        ├── day-covers/
+        │   └── day-{n}.jpg    ← foto cover giorno (opzionale)
+        └── tickets/
+            ├── biglietto.pdf  ← PDF biglietti importati
+            └── event-*.pdf    ← PDF biglietti collegati ad eventi
+```
 
 ---
 

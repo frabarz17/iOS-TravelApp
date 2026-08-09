@@ -14,10 +14,11 @@ L'app sostituisce la PWA TravelApp (in `~/claude/TravelApp`) con un'esperienza n
 |---|---|---|
 | 0 | Setup progetto Expo + struttura cartelle | ✅ Completata |
 | 1 | Data model TypeScript + TripRepository | ✅ Completata |
-| 2 | Lista viaggi + caricamento viaggio esempio (London 2026) | ✅ Completata |
-| 3 | Viewer itinerario (giorni + eventi + Guidami) | ✅ Completata |
+| 2 | Lista viaggi + home screen con cover photo e cities | ✅ Completata |
+| 3 | Viewer itinerario (giorni + eventi + Guidami geolocalizzato) | ✅ Completata |
 | 4 | Viewer mappa + metro + info (5 sottosezioni) + biglietti + PDF | ✅ Completata |
-| 5 | Editing inline per ogni sezione | ⏳ Da fare |
+| 5a | Editing itinerario (day cards, event edit modal, trip edit modal) | ✅ Completata |
+| 5b | Editing inline Info, Mappa, Metro | ⏳ Da fare |
 | 6 | Export/Import JSON (collaborazione) | ⏳ Da fare |
 | 7 | Polish iOS + offline + app icon | ⏳ Da fare |
 
@@ -30,10 +31,12 @@ L'app sostituisce la PWA TravelApp (in `~/claude/TravelApp`) con un'esperienza n
 | State | useState + props | No Redux, no Context globale |
 | Storage | `expo-file-system/legacy` | Subpath `/legacy` obbligatorio su SDK 57 |
 | Path constants | `import { Paths } from 'expo-file-system'` | `Paths.document.uri`, `Paths.cache.uri` |
+| Geocoding | Nominatim (OpenStreetMap) | `User-Agent: iOS-TravelApp/1.0` obbligatorio |
 | PDF viewer | `react-native-webview` | WKWebView su iOS renderizza PDF nativo |
 | Mappe / SVG | `react-native-webview` | WebView per Google My Maps embed e mappa metro SVG |
 | PDF import | `expo-document-picker` | Picker nativo Files app |
 | PDF share | `expo-sharing` | Share sheet iOS |
+| Foto | `expo-image-picker` | Cover photo viaggio + cover photo giorno |
 | Icone | `expo-symbols` | SF Symbols iOS-native |
 | Tipi | TypeScript strict | Interfacce in `src/types/trip.ts` |
 
@@ -44,16 +47,17 @@ iOS-TravelApp/
 ├── src/
 │   ├── app/
 │   │   ├── _layout.tsx             ← Root Stack + ThemeProvider + SplashScreen
-│   │   ├── index.tsx               ← Lista viaggi, FAB +, footer importa London 2026
+│   │   ├── index.tsx               ← Lista viaggi, TripCard, TripEditModal, FAB +
 │   │   └── trip/[id]/
 │   │       ├── _layout.tsx         ← 5 tab: Giorni · Mappa · Metro · Info · Biglietti
-│   │       ├── itinerario.tsx      ← Tab bar giorni, day card, timeline eventi, Guidami
+│   │       ├── itinerario.tsx      ← Day cards (visual calendar), DayDetailSheet,
+│   │       │                          EventEditModal, DayHeaderEditModal
 │   │       ├── mappa.tsx           ← WebView Google My Maps embed (mid=...)
 │   │       ├── metro.tsx           ← WebView SVG h:100vh scrollabile a dx/sx
 │   │       ├── info.tsx            ← 5 pill: Cambio · Voli · Supermercati · Info · Altro
 │   │       └── biglietti.tsx       ← Import PDF da Files, viewer inline WebView modal
 │   ├── repository/
-│   │   └── TripRepository.ts       ← Singleton: CRUD JSON + getTicketUri
+│   │   └── TripRepository.ts       ← Singleton: CRUD JSON, cover photo, day cover, PDF tickets
 │   ├── types/
 │   │   └── trip.ts                 ← Interfacce TypeScript (schema identico alla PWA)
 │   ├── hooks/
@@ -61,9 +65,54 @@ iOS-TravelApp/
 │   └── constants/
 │       └── theme.ts                ← Colors, Spacing, FontSize
 ├── assets/
-│   └── london-2026.json            ← Viaggio di esempio bundled (importato in index.tsx)
+│   ├── london-2026.json            ← Viaggio di esempio bundled
+│   └── images/rich/                ← Immagini hero home + empty state
 └── app.json
 ```
+
+## Architettura itinerario (itinerario.tsx)
+
+### Flusso di navigazione
+```
+ItinerarioScreen
+└── ScrollView di DayCard (visual calendar — una card per giorno, full-width)
+    └── tap → setSelectedDayIdx(i)
+              → DayDetailSheet (pageSheet modal)
+                  ├── Header: xmark | Giorno N · data | edit day
+                  ├── ScrollView eventi (EventRow / OptionsGroup)
+                  └── [modali figli — DENTRO la sheet per stacking corretto]
+                      ├── EventEditModal
+                      └── DayHeaderEditModal
+```
+
+### Regola critica: modal stacking
+I modal figli (`EventEditModal`, `DayHeaderEditModal`) DEVONO essere renderizzati **dentro** il JSX di `DayDetailSheet`. Un `Modal` RN non può apparire sopra un altro `Modal` a meno che non sia nel suo subtree. Se li sposti fuori, i bottoni edit smettono di funzionare.
+
+### Tipo evento: isBooked vs type booked
+`'booked'` esiste nell'`EventType` solo per backward compat con dati legacy (london-2026.json). Non usarlo per nuovi eventi.
+
+```typescript
+// Nuovo pattern: visit o meal + flag isBooked
+{ type: 'visit', isBooked: true, ticketPath: 'tickets/event-123.pdf' }
+
+// Legacy (ancora supportato in rendering):
+{ type: 'booked' }  // → trattato come visit + isBooked: true
+```
+
+Quando si apre `EventEditModal` con `type: 'booked'`, viene normalizzato automaticamente:
+```typescript
+function normalizeEventDraft(ev: TripEvent): TripEvent {
+  if (ev.type === 'booked') return { ...ev, type: 'visit', isBooked: true };
+  return ev;
+}
+```
+
+### Ticket sincronizzati automaticamente
+Quando un evento ha `isBooked: true` e l'utente carica un PDF, `handleSaveEvent` aggiorna automaticamente `trip.tickets[]` — nessun intervento manuale.
+
+### Cover photo
+- **Viaggio**: `trips/{id}/cover.jpg` — via `TripRepository.getCoverPhotoUri`
+- **Giorno**: `trips/{id}/day-covers/day-{n}.jpg` — via `TripRepository.getDayCoverPhotoUri`
 
 ## Regole critiche — NON SBAGLIARE
 
@@ -81,63 +130,89 @@ const { id } = useLocalSearchParams<{ id: string }>();
 
 ### 2. headerTitle nei tab screen (non title)
 
-In `navigation.setOptions()` dentro i tab screen usare `headerTitle`, **mai** `title`. `title` sovrascrive anche la label del tab bar (renderebbe tutti i tab "Londra 2026" invece di "Giorni", "Mappa", ecc.).
+In `navigation.setOptions()` dentro i tab screen usare `headerTitle`, **mai** `title`. `title` sovrascrive anche la label del tab bar.
 
 ```typescript
-// ✅ Aggiorna solo l'header
-navigation.setOptions({ headerTitle: trip.meta.name });
-
-// ❌ Sovrascrive anche la label del tab bar
-navigation.setOptions({ title: trip.meta.name });
+navigation.setOptions({ headerTitle: trip.meta.name }); // ✅
+navigation.setOptions({ title: trip.meta.name });       // ❌
 ```
 
 ### 3. expo-file-system: subpath /legacy + Paths
 
-Su Expo SDK 57 `documentDirectory` e `cacheDirectory` non sono più esportati dal modulo principale.
-
 ```typescript
-// ✅ Operazioni su file
-import * as FileSystem from 'expo-file-system/legacy';
-
-// ✅ Path constants
-import { Paths } from 'expo-file-system';
-const TRIPS_DIR = `${Paths.document.uri}trips/`;
-const tempPath = `${Paths.cache.uri}export.json`;
-
-// ❌ Non funziona su SDK 57
-import * as FileSystem from 'expo-file-system';
-FileSystem.documentDirectory // → undefined
+import * as FileSystem from 'expo-file-system/legacy';  // ✅ operazioni
+import { Paths } from 'expo-file-system';                // ✅ path constants
+// FileSystem.documentDirectory → undefined su SDK 57    // ❌
 ```
 
 ### 4. JSON assets: path relativo, non alias @/
 
-Metro bundler non risolve l'alias `@/assets/` per i file JSON.
-
 ```typescript
-// ✅ Path relativo da src/app/index.tsx
-import londonData from '../../assets/london-2026.json';
-
-// ❌ Metro non lo risolve
-import londonData from '@/assets/london-2026.json';
+import londonData from '../../assets/london-2026.json'; // ✅
+import londonData from '@/assets/london-2026.json';     // ❌ Metro non lo risolve
 ```
 
 ### 5. Moduli nativi: rebuild obbligatorio
 
-`react-native-webview` e `expo-document-picker` sono moduli nativi. Dopo l'installazione:
-
 ```bash
-npx expo start --clear
+npx expo start --clear  # dopo expo install di qualsiasi modulo nativo
 ```
 
-Senza `--clear` Expo Go non carica i nuovi moduli nativi.
+### 6. Nominatim: User-Agent obbligatorio
 
-### 6. Nessun backend esterno
+```typescript
+fetch(url, { headers: { 'User-Agent': 'iOS-TravelApp/1.0' } })
+// Senza User-Agent la API restituisce 403
+```
 
-L'app è completamente autonoma. Non chiamare GitHub API, Vercel, o altri servizi per i dati del viaggio. L'unica API esterna ammessa è Frankfurter (tassi di cambio).
+### 7. StyleSheet.absoluteFill (non absoluteFillObject)
 
-### 7. TripRepository è l'unico accesso allo storage
+```typescript
+style={StyleSheet.absoluteFill}     // ✅ esiste in questa versione RN
+style={StyleSheet.absoluteFillObject} // ❌ non esiste, crasha
+```
+
+### 8. Nessun backend esterno
+
+Nessuna chiamata a GitHub API, Vercel, o altri servizi per i dati. L'unica API esterna ammessa è Frankfurter (tassi di cambio) e Nominatim (geocoding).
+
+### 9. TripRepository è l'unico accesso allo storage
 
 La UI non chiama mai `expo-file-system` direttamente. Tutto passa per `tripRepository`.
+
+## Schema dati — campi rilevanti per l'editing
+
+### TripEvent (aggiornato)
+
+```typescript
+interface TripEvent {
+  type: 'visit' | 'meal' | 'logistics' | 'booked'; // 'booked' = legacy
+  isBooked?: boolean;   // true = visita/pasto con prenotazione
+  ticketPath?: string;  // path relativo PDF, es. "tickets/event-123.pdf"
+  placeGuide?: string;  // nome luogo per Guidami
+  placeLat?: number;    // coordinate precise da Nominatim
+  placeLon?: number;
+  // ... altri campi
+}
+```
+
+### TripMeta (aggiornato)
+
+```typescript
+interface TripMeta {
+  cities?: string[];  // città visitate, mostrate nella card home
+  // ... altri campi
+}
+```
+
+### TripSummary (per la home)
+
+```typescript
+interface TripSummary {
+  cities: string[];   // sempre array ([] se non impostato)
+  // ... altri campi
+}
+```
 
 ## Architettura navigazione
 
@@ -151,19 +226,7 @@ Stack (root)
     └── biglietti    → "Biglietti" (import PDF + modal viewer)
 ```
 
-Il tab layout ha un `headerLeft` con pulsante `← chevron.left` per tornare alla lista viaggi (lo swipe back non funziona con i Tabs che assorbono i gesti orizzontali).
-
-## Editing inline (Fase 5 — da implementare)
-
-Pattern da seguire per ogni schermata:
-
-```typescript
-const [isEditing, setIsEditing] = useState(false);
-// Header right: "Modifica" → setIsEditing(true) / "Fine" → salva + setIsEditing(false)
-// Viewer: componenti di sola lettura
-// Editor: TextInput, DatePicker, sheet modal per form complesse
-// Salvataggio: tripRepository.saveTrip(updatedTrip) al tap "Fine"
-```
+Il tab layout ha un `headerLeft` con pulsante `← chevron.left` per tornare alla lista viaggi.
 
 ## Testing
 
@@ -173,7 +236,7 @@ npx expo start          # QR code → Expo Go su iPhone
 npx expo start --clear  # dopo installazione di moduli nativi
 
 # TypeScript check
-./node_modules/.bin/tsc --noEmit -p tsconfig.json
+npx tsc --noEmit
 ```
 
 ## Git

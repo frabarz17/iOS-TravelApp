@@ -39,6 +39,7 @@ export interface TripMeta {
   theme: TripTheme;
   currency: Currency;
   language: string;
+  cities?: string[];
 }
 
 // ─── Hotel ────────────────────────────────────────────────────────────────────
@@ -148,13 +149,19 @@ export type EventType = 'visit' | 'booked' | 'meal' | 'logistics';
 
 export interface TripEvent {
   time: string;
+  timeTo?: string;
   name: string;
   type: EventType;
   description: string;
   tip?: string;
   alert?: string;
   placeGuide?: string;
+  placeLat?: number;
+  placeLon?: number;
   showBookingBadge?: boolean;
+  isOptional?: boolean;
+  isBooked?: boolean;      // true = visita/pasto con prenotazione
+  ticketPath?: string;     // path relativo PDF, es. "tickets/event-xyz.pdf"
 }
 
 export type BadgeColor = 'default' | 'red' | 'blue' | 'gold';
@@ -225,4 +232,6 @@ export interface TripSummary {
   flag: string;
   startDate: string;
   endDate: string;
+  theme: TripTheme;
+  cities: string[];
 }

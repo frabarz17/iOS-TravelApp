@@ -49,6 +49,8 @@ class TripRepository {
       flag: meta.flag,
       startDate: meta.startDate,
       endDate: meta.endDate,
+      theme: meta.theme,
+      cities: meta.cities ?? [],
     }));
   }
 
@@ -103,6 +105,30 @@ class TripRepository {
     const trip: Trip = JSON.parse(raw);
     await this.saveTrip(trip);
     return trip;
+  }
+
+  // ─── Cover photo ───────────────────────────────────────────────────────────
+
+  getCoverPhotoUri(tripId: string): string {
+    return `${TRIPS_DIR}${tripId}/cover.jpg`;
+  }
+
+  async saveCoverPhoto(tripId: string, sourceUri: string): Promise<void> {
+    const dir = `${TRIPS_DIR}${tripId}/`;
+    await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+    await FileSystem.copyAsync({ from: sourceUri, to: `${dir}cover.jpg` });
+  }
+
+  // ─── Day cover photo ───────────────────────────────────────────────────────
+
+  getDayCoverPhotoUri(tripId: string, dayN: number): string {
+    return `${TRIPS_DIR}${tripId}/day-covers/day-${dayN}.jpg`;
+  }
+
+  async saveDayCoverPhoto(tripId: string, dayN: number, sourceUri: string): Promise<void> {
+    const dir = `${TRIPS_DIR}${tripId}/day-covers/`;
+    await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+    await FileSystem.copyAsync({ from: sourceUri, to: `${dir}day-${dayN}.jpg` });
   }
 
   // ─── Ticket PDF ────────────────────────────────────────────────────────────
