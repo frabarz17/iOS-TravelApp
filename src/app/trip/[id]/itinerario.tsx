@@ -29,6 +29,7 @@ import { tripRepository } from '@/repository/TripRepository';
 import { Trip, TripDay, TripEvent, EventType, Ticket } from '@/types/trip';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
+import { AiRefineModal } from '@/components/AiRefineModal';
 
 // ─── Tipi locali ──────────────────────────────────────────────────────────────
 
@@ -84,12 +85,24 @@ export default function ItinerarioScreen() {
   const insets = useSafeAreaInsets();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
+  const [showAiRefine, setShowAiRefine] = useState(false);
 
   useEffect(() => {
     tripRepository.getTrip(id).then((t) => {
       if (!t) return;
       setTrip(t);
-      navigation.setOptions({ headerTitle: t.meta.name });
+      navigation.setOptions({
+        headerTitle: t.meta.name,
+        headerRight: () => (
+          <Pressable
+            onPress={() => setShowAiRefine(true)}
+            style={{ marginRight: 8, padding: 4 }}
+            hitSlop={8}
+          >
+            <SymbolView name="sparkles" size={20} tintColor="#007AFF" />
+          </Pressable>
+        ),
+      });
     });
   }, [id]);
 
@@ -215,6 +228,16 @@ export default function ItinerarioScreen() {
           onClose={() => setSelectedDayIdx(null)}
         />
       )}
+
+      <AiRefineModal
+        visible={showAiRefine}
+        onClose={() => setShowAiRefine(false)}
+        trip={trip}
+        onTripUpdated={(updated) => {
+          setTrip(updated);
+          navigation.setOptions({ headerTitle: updated.meta.name });
+        }}
+      />
     </View>
   );
 }

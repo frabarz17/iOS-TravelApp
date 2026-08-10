@@ -19,6 +19,8 @@ L'app sostituisce la PWA TravelApp (in `~/claude/TravelApp`) con un'esperienza n
 | 4 | Viewer mappa + metro + info (5 sottosezioni) + biglietti + PDF | ✅ Completata |
 | 5a | Editing itinerario (day cards, event edit modal, trip edit modal) | ✅ Completata |
 | 5c | Vista calendario giornaliero con drag & resize + date/time picker | ✅ Completata |
+| 8 | AI Wizard: creazione viaggio con Gemini (form → JSON → trip) | ✅ Completata |
+| 8b | AI Refine: modifica itinerario esistente con Gemini | ✅ Completata |
 | 5b | Editing inline Info, Mappa, Metro | ⏳ Da fare |
 | 6 | Export/Import JSON (collaborazione) | ⏳ Da fare |
 | 7 | Polish iOS + offline + app icon | ⏳ Da fare |
@@ -33,6 +35,7 @@ L'app sostituisce la PWA TravelApp (in `~/claude/TravelApp`) con un'esperienza n
 | Storage | `expo-file-system/legacy` | Subpath `/legacy` obbligatorio su SDK 57 |
 | Path constants | `import { Paths } from 'expo-file-system'` | `Paths.document.uri`, `Paths.cache.uri` |
 | Geocoding | Nominatim (OpenStreetMap) | `User-Agent: iOS-TravelApp/1.0` obbligatorio |
+| AI generazione | Google Gemini REST API | Modello: `gemini-flash-latest`; chiave in `ai_settings.json` |
 | PDF viewer | `react-native-webview` | WKWebView su iOS renderizza PDF nativo |
 | Mappe / SVG | `react-native-webview` | WebView per Google My Maps embed e mappa metro SVG |
 | PDF import | `expo-document-picker` | Picker nativo Files app |
@@ -55,11 +58,17 @@ iOS-TravelApp/
 │   │   └── trip/[id]/
 │   │       ├── _layout.tsx         ← 5 tab: Giorni · Mappa · Metro · Info · Biglietti
 │   │       ├── itinerario.tsx      ← Day cards (visual calendar), DayDetailSheet,
-│   │       │                          EventEditModal, DayHeaderEditModal
+│   │       │                          EventEditModal, DayHeaderEditModal,
+│   │       │                          AiRefineModal (trigger: ✦ header button)
 │   │       ├── mappa.tsx           ← WebView Google My Maps embed (mid=...)
 │   │       ├── metro.tsx           ← WebView SVG h:100vh scrollabile a dx/sx
 │   │       ├── info.tsx            ← 5 pill: Cambio · Voli · Supermercati · Info · Altro
 │   │       └── biglietti.tsx       ← Import PDF da Files, viewer inline WebView modal
+│   ├── components/
+│   │   ├── AiWizardModal.tsx       ← Creazione viaggio con AI (form → Gemini → trip)
+│   │   └── AiRefineModal.tsx       ← Modifica itinerario esistente con AI (istruzioni → Gemini → trip)
+│   ├── services/
+│   │   └── claude.ts               ← Client Gemini: getApiKey, saveApiKey, generateTrip, refineTrip
 │   ├── repository/
 │   │   └── TripRepository.ts       ← Singleton: CRUD JSON, cover photo, day cover, PDF tickets
 │   ├── types/
@@ -67,18 +76,60 @@ iOS-TravelApp/
 │   ├── hooks/
 │   │   └── use-theme.ts            ← Colori light/dark da useColorScheme
 │   └── constants/
-│       └── theme.ts                ← Colors, Spacing, FontSize
+│       ├── theme.ts                ← Colors, Spacing, FontSize
+│       └── airports.ts             ← Lista ~250 aeroporti internazionali + filterAirports()
 ├── assets/
 │   ├── london-2026.json            ← Viaggio di esempio bundled
 │   └── images/rich/                ← Immagini hero home + empty state
 └── app.json
 ```
 
+## Architettura AI (claude.ts + modali)
+
+### Storage chiave API
+
+La chiave API Gemini è salvata in `Paths.document.uri + 'ai_settings.json'` come campo `{ aiApiKey: "..." }`. Non è mai inviata al server né esposta in altro modo.
+
+```typescript
+import { getApiKey, saveApiKey } from '@/services/claude';
+const key = await getApiKey();   // legge ai_settings.json
+await saveApiKey('AIza...');     // scrive ai_settings.json
+```
+
+### Modello Gemini
+
+Usare sempre `gemini-flash-latest` — è un alias rolling che punta al modello Flash stabile disponibile nell'account. Non hardcodare `gemini-1.5-flash`, `gemini-2.0-flash` o `gemini-2.5-flash` perché la disponibilità varia per account.
+
+### generateTrip — Creazione viaggio
+
+`generateTrip(params: TripGenParams): Promise<Trip>` — chiama Gemini con un system prompt dettagliato e un user prompt strutturato. Il JSON risultante viene:
+1. Estratto da `extractJson(text)` con 3 fallback (```json, ```, raw `{...}`)
+2. Riparato con `repairTruncatedJson()` se troncato (stato machine parentesi)
+3. Mergiato con `tripRepository.createEmpty(id)` per garantire tutti i campi obbligatori
+
+`maxOutputTokens: 32768` — indispensabile perché i modelli "thinking" consumano budget dal conteggio output.
+
+### refineTrip — Modifica itinerario
+
+`refineTrip({ trip, instructions, apiKey }): Promise<Trip>` — invia il JSON completo del viaggio + le istruzioni utente. Il `meta.id` è garantito invariato dopo il parsing.
+
+`temperature: 0.5` (più bassa di generateTrip 0.7) per modifiche più conservative.
+
+### AiWizardModal — form creazione
+
+Campi: destinazione · date (picker iOS) · adulti · bambini (fasce età) · tipo viaggio · interessi · note
+Logistica opzionale: aeroporto arrivo (autocomplete da `airports.ts`) · orario atterraggio (picker iOS time) · alloggio (Nominatim search) · aeroporto partenza · orario decollo
+
+### AiRefineModal — modifica guidata
+
+Campo unico: istruzioni libere multiline. Mostra preview con nome nuovo (se cambiato, barrato → nuovo), delta giorni e delta attività (+/- colorato). Trigger: bottone `sparkles` nel headerRight dell'itinerario.
+
 ## Architettura itinerario (itinerario.tsx)
 
 ### Flusso di navigazione
 ```
 ItinerarioScreen
+├── headerRight: ✦ sparkles → AiRefineModal
 └── ScrollView di DayCard (visual calendar — una card per giorno, full-width)
     └── tap → setSelectedDayIdx(i)
               → DayDetailSheet (pageSheet modal)
@@ -91,6 +142,8 @@ ItinerarioScreen
 
 ### Regola critica: modal stacking
 I modal figli (`EventEditModal`, `DayHeaderEditModal`) DEVONO essere renderizzati **dentro** il JSX di `DayDetailSheet`. Un `Modal` RN non può apparire sopra un altro `Modal` a meno che non sia nel suo subtree. Se li sposti fuori, i bottoni edit smettono di funzionare.
+
+`AiRefineModal` invece è un modal di primo livello: renderizzato direttamente in `ItinerarioScreen`, non dentro `DayDetailSheet`.
 
 ### Tipo evento: isBooked vs type booked
 `'booked'` esiste nell'`EventType` solo per backward compat con dati legacy (london-2026.json). Non usarlo per nuovi eventi.
@@ -198,9 +251,12 @@ style={StyleSheet.absoluteFill}     // ✅ esiste in questa versione RN
 style={StyleSheet.absoluteFillObject} // ❌ non esiste, crasha
 ```
 
-### 8. Nessun backend esterno
+### 8. API esterne ammesse
 
-Nessuna chiamata a GitHub API, Vercel, o altri servizi per i dati. L'unica API esterna ammessa è Frankfurter (tassi di cambio) e Nominatim (geocoding).
+Le uniche API esterne consentite sono:
+- **Frankfurter** — tassi di cambio (`api.frankfurter.app`)
+- **Nominatim** — geocoding (`nominatim.openstreetmap.org`)
+- **Google Gemini REST API** — AI generazione/modifica itinerari (`generativelanguage.googleapis.com`) — solo su richiesta esplicita utente, con chiave personale salvata localmente
 
 ### 9. TripRepository è l'unico accesso allo storage
 
@@ -225,6 +281,31 @@ const pan = Gesture.Pan()
 ### 12. DateTimePicker: --clear dopo install
 
 `@react-native-community/datetimepicker` è un modulo nativo. Dopo `npx expo install @react-native-community/datetimepicker` serve sempre `npx expo start --clear`.
+
+### 13. Gemini: modello e token budget
+
+```typescript
+// ✅ Usa l'alias rolling
+const GEMINI_MODEL = 'gemini-flash-latest';
+
+// ✅ maxOutputTokens alto — i modelli thinking consumano budget output
+generationConfig: { maxOutputTokens: 32768, temperature: 0.7 }
+
+// ❌ Non hardcodare versioni specifiche
+const GEMINI_MODEL = 'gemini-2.5-flash';  // può non essere disponibile per l'account
+```
+
+I modelli Gemini 2.5+ producono parti "thinking" con `thought: true` — filtrarle sempre:
+```typescript
+const textParts = allParts.filter(p => !p.thought && typeof p.text === 'string');
+```
+
+### 14. JSON Gemini: parsing robusto obbligatorio
+
+Il JSON restituito da Gemini può essere troncato (se il trip è lungo e i token finiscono) o in formato non standard. Usare sempre la pipeline in `claude.ts`:
+1. `extractJson(text)` — 3 strategie: ```json block, ``` block, raw `{...}`
+2. `JSON.parse()` — tentativo diretto
+3. `repairTruncatedJson()` + `JSON.parse()` — fallback per JSON troncati
 
 ## Schema dati — campi rilevanti per l'editing
 
@@ -265,7 +346,7 @@ interface TripSummary {
 ```
 Stack (root)
 └── Tabs (trip/[id]/_layout.tsx)
-    ├── itinerario   → "Giorni"
+    ├── itinerario   → "Giorni"  (+ headerRight: ✦ AI Refine)
     ├── mappa        → "Mappa"    (WebView Google My Maps)
     ├── metro        → "Metro"    (WebView SVG)
     ├── info         → "Info"     (pill nav interna: Cambio/Voli/Supermercati/Info/Altro)

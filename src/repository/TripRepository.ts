@@ -115,8 +115,10 @@ class TripRepository {
 
   async saveCoverPhoto(tripId: string, sourceUri: string): Promise<void> {
     const dir = `${TRIPS_DIR}${tripId}/`;
+    const destUri = `${dir}cover.jpg`;
+    if (sourceUri === destUri) return;
     await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
-    await FileSystem.copyAsync({ from: sourceUri, to: `${dir}cover.jpg` });
+    await FileSystem.copyAsync({ from: sourceUri, to: destUri });
   }
 
   // ─── Day cover photo ───────────────────────────────────────────────────────

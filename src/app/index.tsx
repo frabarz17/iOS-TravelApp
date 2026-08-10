@@ -18,13 +18,17 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Paths } from 'expo-file-system';
+import { BACKGROUND_CATEGORIES, type BackgroundItem } from '@/constants/backgrounds';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { tripRepository } from '@/repository/TripRepository';
 import { Trip, TripSummary } from '@/types/trip';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
+import { AiWizardModal } from '@/components/AiWizardModal';
 import londonTripJson from '../../assets/london-2026.json';
 
 const londonTrip = londonTripJson as unknown as Trip;
@@ -52,6 +56,8 @@ export default function HomeScreen() {
   const [trips, setTrips] = useState<TripSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState<TripModalState | null>(null);
+  const [cardResetKey, setCardResetKey] = useState(0);
+  const [showAiWizard, setShowAiWizard] = useState(false);
 
   const loadTrips = useCallback(async () => {
     setLoading(true);
@@ -104,6 +110,7 @@ export default function HomeScreen() {
         if (data.coverUri) await tripRepository.saveCoverPhoto(editModal.tripId, data.coverUri);
       }
       setEditModal(null);
+      setCardResetKey(k => k + 1);
       loadTrips();
     }
   };
@@ -134,6 +141,7 @@ export default function HomeScreen() {
         keyExtractor={(t) => t.id}
         renderItem={({ item }) => (
           <TripCard
+            key={`${item.id}-${cardResetKey}`}
             item={item}
             onPress={() => router.push(`/trip/${item.id}/itinerario`)}
             onEdit={() => openEditModal(item)}
@@ -164,7 +172,11 @@ export default function HomeScreen() {
       />
 
       <Pressable
-        onPress={openNewModal}
+        onPress={() => Alert.alert('Nuovo viaggio', undefined, [
+          { text: 'Crea manualmente', onPress: openNewModal },
+          { text: 'Crea con AI', onPress: () => setShowAiWizard(true) },
+          { text: 'Annulla', style: 'cancel' },
+        ])}
         style={[styles.fab, { bottom: insets.bottom + Spacing.four }]}
       >
         <SymbolView name="plus" size={26} tintColor="white" />
@@ -180,6 +192,17 @@ export default function HomeScreen() {
           onClose={() => setEditModal(null)}
         />
       )}
+
+      <AiWizardModal
+        visible={showAiWizard}
+        onClose={() => setShowAiWizard(false)}
+        onTripCreated={(tripId) => {
+          setShowAiWizard(false);
+          setCardResetKey(k => k + 1);
+          loadTrips();
+          router.push(`/trip/${tripId}/itinerario`);
+        }}
+      />
     </View>
   );
 }
@@ -350,6 +373,7 @@ function TripEditModal({
   const [citySearching, setCitySearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeDatePicker, setActiveDatePicker] = useState<'start' | 'end' | null>(null);
+  const [showBgPicker, setShowBgPicker] = useState(false);
 
   const dateStringToDate = (s: string): Date => {
     const d = new Date(s || Date.now());
@@ -375,6 +399,28 @@ function TripEditModal({
       quality: 0.85,
     });
     if (!result.canceled) setCoverUri(result.assets[0].uri);
+  };
+
+  const pickBundledBackground = async (item: BackgroundItem) => {
+    const asset = Asset.fromModule(item.source);
+    await asset.downloadAsync();
+    // Copy to our app cache immediately — asset.localUri is in Expo Go's sandbox
+    // and cannot be read by FileSystem.copyAsync at save time.
+    const destUri = `${Paths.cache.uri}bg_${item.id}.jpg`;
+    try {
+      if (asset.localUri) {
+        await FileSystem.copyAsync({ from: asset.localUri, to: destUri });
+      } else {
+        await FileSystem.downloadAsync(asset.uri, destUri);
+      }
+      setCoverUri(destUri);
+    } catch {
+      // Expo Go dev mode: localUri is inaccessible, fall back to downloading
+      // from the Metro server via asset.uri (http://)
+      await FileSystem.downloadAsync(asset.uri, destUri);
+      setCoverUri(destUri);
+    }
+    setShowBgPicker(false);
   };
 
   const searchCity = async () => {
@@ -435,19 +481,24 @@ function TripEditModal({
           keyboardShouldPersistTaps="handled"
         >
           {/* Cover photo */}
-          <Pressable onPress={pickCover} style={tmStyles.cover}>
+          <View style={tmStyles.cover}>
             {coverUri ? (
               <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
             ) : (
               <LinearGradient colors={['#1A1A2E', '#2D4A8F']} style={StyleSheet.absoluteFill} />
             )}
             <View style={tmStyles.coverOverlay}>
-              <SymbolView name="camera.fill" size={20} tintColor="white" />
-              <Text style={tmStyles.coverLabel}>
-                {coverUri ? 'Cambia foto' : 'Aggiungi foto cover'}
-              </Text>
+              {!coverUri && <Text style={tmStyles.coverLabel}>Aggiungi foto cover</Text>}
+              <View style={tmStyles.coverBtns}>
+                <Pressable onPress={pickCover} style={tmStyles.coverIconBtn}>
+                  <SymbolView name="camera.fill" size={18} tintColor="white" />
+                </Pressable>
+                <Pressable onPress={() => setShowBgPicker(true)} style={tmStyles.coverIconBtn}>
+                  <SymbolView name="photo.stack.fill" size={18} tintColor="white" />
+                </Pressable>
+              </View>
             </View>
-          </Pressable>
+          </View>
 
           {/* Nome */}
           <Text style={[tmStyles.label, { color: theme.textSecondary }]}>NOME *</Text>
@@ -608,6 +659,11 @@ function TripEditModal({
           )}
         </ScrollView>
       </View>
+      <BackgroundPickerModal
+        visible={showBgPicker}
+        onClose={() => setShowBgPicker(false)}
+        onSelect={pickBundledBackground}
+      />
     </Modal>
   );
 }
@@ -637,6 +693,8 @@ const tmStyles = StyleSheet.create({
   },
   coverOverlay: { alignItems: 'center', gap: 8 },
   coverLabel: { color: 'white', fontSize: 15, fontWeight: '600' },
+  coverBtns: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  coverIconBtn: { backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 20, padding: 10 },
   label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginTop: Spacing.two, marginBottom: 4 },
   field: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 2 },
   input: { fontSize: 16, paddingVertical: 12 },
@@ -665,6 +723,136 @@ const tmStyles = StyleSheet.create({
     borderRadius: 14, borderWidth: 1, borderColor: '#FF3B30',
   },
   deleteText: { color: '#FF3B30', fontSize: 16, fontWeight: '600' },
+});
+
+// ─── Background picker modal ──────────────────────────────────────────────────
+
+function BackgroundPickerModal({
+  visible,
+  onClose,
+  onSelect,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (item: BackgroundItem) => void;
+}) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const [activeCat, setActiveCat] = useState(BACKGROUND_CATEGORIES[0].id);
+  const category = BACKGROUND_CATEGORIES.find(c => c.id === activeCat) ?? BACKGROUND_CATEGORIES[0];
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={[bgStyles.root, { backgroundColor: theme.background }]}>
+        {/* Header */}
+        <View style={[bgStyles.header, { borderBottomColor: theme.backgroundElement, paddingTop: insets.top + 16 }]}>
+          <Text style={[bgStyles.title, { color: theme.text }]}>Backgrounds</Text>
+          <Pressable onPress={onClose} style={bgStyles.closeBtn}>
+            <SymbolView name="xmark.circle.fill" size={28} tintColor={theme.textSecondary} />
+          </Pressable>
+        </View>
+
+        {/* Category pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={bgStyles.pillsScroll}
+          contentContainerStyle={bgStyles.pills}
+        >
+          {BACKGROUND_CATEGORIES.map(cat => (
+            <Pressable
+              key={cat.id}
+              onPress={() => setActiveCat(cat.id)}
+              style={[
+                bgStyles.pill,
+                { backgroundColor: cat.id === activeCat ? '#007AFF' : theme.backgroundElement },
+              ]}
+            >
+              <Text style={[bgStyles.pillText, { color: cat.id === activeCat ? 'white' : theme.text }]}>
+                {cat.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        {/* Image grid */}
+        <FlatList
+          key={activeCat}
+          data={category.items}
+          numColumns={2}
+          keyExtractor={item => item.id}
+          style={bgStyles.flatList}
+          contentContainerStyle={[bgStyles.grid, { paddingBottom: insets.bottom + 20 }]}
+          columnWrapperStyle={bgStyles.gridRow}
+          renderItem={({ item }) => (
+            <Pressable style={bgStyles.thumb} onPress={() => onSelect(item)}>
+              <Image source={item.source} style={bgStyles.thumbImage} resizeMode="cover" />
+              <View style={bgStyles.thumbOverlay}>
+                <Text style={bgStyles.thumbLabel} numberOfLines={1}>{item.label}</Text>
+              </View>
+            </Pressable>
+          )}
+          ListFooterComponent={
+            <View style={[bgStyles.pexelsBox, { backgroundColor: theme.backgroundElement }]}>
+              <Image
+                source={require('../../assets/images/rich/backgrounds/pexels-logo.png')}
+                style={bgStyles.pexelsLogo}
+                resizeMode="contain"
+              />
+              <Text style={[bgStyles.pexelsText, { color: theme.textSecondary }]}>
+                Photos provided by Pexels and free to use.{'\n'}
+                Discover more at pexels.com
+              </Text>
+            </View>
+          }
+        />
+      </View>
+    </Modal>
+  );
+}
+
+const bgStyles = StyleSheet.create({
+  root: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.three,
+    paddingBottom: 14,
+  },
+  title: { fontSize: 17, fontWeight: '700' },
+  closeBtn: { padding: 4 },
+  pillsScroll: { flexShrink: 0, flexGrow: 0 },
+  pills: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  pill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: 8 },
+  pillText: { fontSize: 12, fontWeight: '600' },
+  flatList: { flex: 1 },
+  grid: { paddingHorizontal: Spacing.three, paddingTop: 4 },
+  gridRow: { gap: Spacing.two, marginBottom: Spacing.two },
+  thumb: { flex: 1, aspectRatio: 16 / 9, borderRadius: 12, overflow: 'hidden' },
+  thumbImage: { width: '100%', height: '100%' },
+  thumbOverlay: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.42)',
+    paddingHorizontal: 8, paddingVertical: 5,
+  },
+  thumbLabel: { color: 'white', fontSize: 12, fontWeight: '600' },
+  pexelsBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: Spacing.three,
+    marginTop: Spacing.three,
+    padding: 14,
+    borderRadius: 14,
+  },
+  pexelsLogo: { width: 32, height: 32, borderRadius: 6 },
+  pexelsText: { flex: 1, fontSize: 12, lineHeight: 17 },
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

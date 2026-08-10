@@ -4,23 +4,28 @@ Linee guida operative per Claude Code (e altri agenti) che lavorano su questo re
 
 ## Orientamento rapido
 
-App iOS nativa per viaggi di famiglia. React Native + Expo Router. Dati locali su device via `expo-file-system`. Nessun backend esterno.
+App iOS nativa per viaggi di famiglia. React Native + Expo Router. Dati locali su device via `expo-file-system`. Nessun backend esterno (Gemini API è chiamata direttamente dall'app con chiave personale dell'utente).
 
 **Leggi sempre `CLAUDE.md` prima di iniziare qualsiasi modifica** — contiene le regole critiche e i gotcha tecnici che hanno richiesto debugging in passato.
 
 ## Come esplorare il codice
 
 ```
-src/app/                     — schermate (Expo Router file-based)
-src/app/index.tsx            — home: lista viaggi, TripCard, TripEditModal
-src/app/trip/[id]/           — 5 tab del dettaglio viaggio
-src/app/trip/[id]/itinerario.tsx — day cards, sheet, event edit, Guidami
-src/types/trip.ts            — interfacce TypeScript dello schema dati
-src/repository/              — TripRepository (unico accesso allo storage)
-src/hooks/use-theme.ts       — colori light/dark
-src/constants/theme.ts       — Spacing, FontSize, Colors
-assets/london-2026.json      — viaggio di esempio bundled
-assets/images/rich/          — immagini hero home + empty state
+src/app/                          — schermate (Expo Router file-based)
+src/app/index.tsx                 — home: lista viaggi, TripCard, TripEditModal, AiWizardModal
+src/app/trip/[id]/                — 5 tab del dettaglio viaggio
+src/app/trip/[id]/itinerario.tsx  — day cards, sheet, event edit, Guidami, AiRefineModal
+src/app/trip/[id]/_layout.tsx     — 5 tab + headerLeft back button
+src/components/AiWizardModal.tsx  — wizard creazione viaggio con AI (form → Gemini → trip)
+src/components/AiRefineModal.tsx  — modifica itinerario esistente (istruzioni → Gemini → trip)
+src/services/claude.ts            — client Gemini: getApiKey, saveApiKey, generateTrip, refineTrip
+src/types/trip.ts                 — interfacce TypeScript dello schema dati
+src/repository/                   — TripRepository (unico accesso allo storage)
+src/hooks/use-theme.ts            — colori light/dark
+src/constants/theme.ts            — Spacing, FontSize, Colors
+src/constants/airports.ts         — lista ~250 aeroporti + filterAirports()
+assets/london-2026.json           — viaggio di esempio bundled
+assets/images/rich/               — immagini hero home + empty state
 ```
 
 Per capire lo schema dati, leggi `src/types/trip.ts` e `assets/london-2026.json`.
@@ -41,6 +46,10 @@ Per capire lo schema dati, leggi `src/types/trip.ts` e `assets/london-2026.json`
 | Placeholder testo grande clippato in alto | TextInput con fontSize > 20 ha bisogno di paddingTop extra | `paddingTop` ≥ `fontSize * 0.5` per evitare clipping ascender |
 | Calendario crasha al primo touch | `Gesture.Pan()` senza `.runOnJS(true)` → callback su UI thread → crash su setter React | Aggiungere `.runOnJS(true)` a ogni `Gesture.Pan()` che chiama funzioni JS |
 | Gesture non funzionano dentro Modal | `GestureHandlerRootView` assente nel layout radice | Avvolgere `_layout.tsx` con `GestureHandlerRootView` (già in `src/app/_layout.tsx`) |
+| Gemini 404 sul modello | Versione specifica non disponibile per l'account (es. `gemini-2.5-flash` per nuovi utenti) | Usare `gemini-flash-latest` — alias rolling sempre disponibile |
+| JSON Gemini troncato | `maxOutputTokens: 8192` troppo basso — i modelli thinking consumano budget output | `maxOutputTokens: 32768`; usare `repairTruncatedJson()` come fallback |
+| Parti "thinking" nel testo Gemini | Gemini 2.5+ include parti con `thought: true` | Filtrare: `allParts.filter(p => !p.thought && typeof p.text === 'string')` |
+| JSON non trovato nella risposta Gemini | Il modello non sempre usa il tag ` ```json ` | Usare `extractJson()` con 3 strategie: block json, block generico, raw `{...}` |
 
 ## Architettura editing itinerario
 
@@ -56,15 +65,70 @@ DayDetailSheet (Modal pageSheet)
 │   └── CurrentTimeIndicator (linea rossa ora corrente)
 └── EventEditModal (Modal pageSheet) ← DENTRO DayDetailSheet
     └── DayHeaderEditModal (Modal pageSheet) ← DENTRO DayDetailSheet
+
+AiRefineModal (Modal pageSheet) ← fuori, in ItinerarioScreen (primo livello)
 ```
 
 Mai spostare `EventEditModal` o `DayHeaderEditModal` fuori dal JSX di `DayDetailSheet`. I Modal React Native non possono apparire sopra altri Modal se non sono nel loro subtree.
+
+`AiRefineModal` è invece un modal di primo livello — va bene fuori dalla sheet.
 
 ### Logica calendario
 
 - `onMove(idx, newTime)` in `DayDetailSheet`: calcola durata originale e sposta anche `timeTo` dello stesso delta; controlla overlap prima di salvare
 - `onResize(idx, newTimeTo)`: solo `timeTo`, controlla overlap e minimo 15 min
 - Blocco snaps back automaticamente a `ty = 0` con `withSpring` in `onEnd`; se il save non avviene (overlap), rimane alla posizione originale
+
+## Architettura AI
+
+### Flusso creazione viaggio (AiWizardModal)
+
+```
+FAB + → Alert.alert
+         ├── "Crea manualmente" → TripEditModal (esistente)
+         └── "Crea con AI" → AiWizardModal
+             ├── [no key] → input chiave API
+             ├── Form: dest · date · adulti · bambini · tipo · interessi · note
+             ├── Logistica: aeroporto arrivo (autocomplete airports.ts) ·
+             │             orario atterraggio (DateTimePicker time) ·
+             │             alloggio (Nominatim search) ·
+             │             aeroporto partenza · orario decollo
+             ├── "Genera itinerario" → generateTrip() → Gemini API
+             ├── Preview (nome · giorni · attività · flag)
+             └── "Crea viaggio" → tripRepository.saveTrip() → navigazione al trip
+```
+
+### Flusso modifica itinerario (AiRefineModal)
+
+```
+ItinerarioScreen headerRight ✦ → AiRefineModal
+    ├── [no key] → input chiave API
+    ├── Contesto: nome viaggio corrente + giorni + attività
+    ├── Campo istruzioni (multiline libero)
+    ├── "Applica modifiche" → refineTrip() → Gemini API
+    ├── Preview diff (nome · delta giorni · delta attività)
+    └── "Salva modifiche" → tripRepository.saveTrip() + onTripUpdated()
+```
+
+### Pipeline JSON Gemini (in claude.ts)
+
+```typescript
+// 1. Estrai JSON dalla risposta testuale
+const jsonStr = extractJson(text);  // 3 strategie
+
+// 2. Parsing con fallback riparazione
+try {
+  parsed = JSON.parse(jsonStr);
+} catch {
+  parsed = JSON.parse(repairTruncatedJson(jsonStr));
+}
+
+// 3. Per generateTrip: merge con createEmpty per campi mancanti
+const trip = { ...tripRepository.createEmpty(id), ...parsed, meta: { ...parsed.meta, id } };
+
+// 4. Per refineTrip: garantisci id invariato
+return { ...refined, meta: { ...refined.meta, id: params.trip.meta.id } };
+```
 
 ## Tipo evento: isBooked vs booked
 
@@ -147,6 +211,8 @@ npx tsc --noEmit
 - Non creare un "admin separato" — l'editing è sempre inline nella sezione
 - Non usare `StyleSheet.absoluteFillObject` — usare `StyleSheet.absoluteFill`
 - Non rendere EventEditModal fuori dal subtree di DayDetailSheet
+- Non hardcodare versioni specifiche di Gemini — usare `gemini-flash-latest`
+- Non inviare la chiave API Gemini a servizi terzi — resta locale in `ai_settings.json`
 
 ### SÌ fare
 - Passare sempre per `tripRepository` per leggere/scrivere dati
@@ -156,6 +222,8 @@ npx tsc --noEmit
 - Aggiornare `src/types/trip.ts` quando si aggiunge un campo al modello
 - Aggiornare `CLAUDE.md` e `AGENTS.md` se si scoprono nuovi gotcha tecnici
 - Verificare zero errori con `npx tsc --noEmit` prima di ogni commit
+- Filtrare le parti `thought: true` nelle risposte Gemini
+- Usare sempre `repairTruncatedJson()` come fallback parsing JSON Gemini
 
 ## Contesto progetto
 

@@ -27,8 +27,23 @@ Per collaborare con qualcuno: **Esporta viaggio** → AirDrop/WhatsApp → l'alt
 - Card viaggio con foto cover personalizzabile, nome, città visitate e date
 - Bottone matita (cerchio traslucido) su ogni card → modal di editing completo
 - Modal viaggio: nome, sottotitolo, **selettore data nativo iOS** (spinner giorno/mese/anno), città (ricerca Nominatim), foto cover
-- FAB `+` per creare nuovo viaggio
-- Caricamento viaggio di esempio (London 2026)
+- FAB `+` con due opzioni:
+  - **Crea manualmente** → modal di editing standard
+  - **Crea con AI** → wizard di creazione assistita con Gemini
+
+### Creazione viaggio con AI (Wizard)
+- Un form strutturato guida la creazione: destinazione, date, viaggiatori (adulti + bambini per fascia d'età), tipo di viaggio, interessi, note
+- **Logistica opzionale**: aeroporto di arrivo con autocomplete (~250 aeroporti mondiali), orario atterraggio (picker iOS nativo), struttura alloggio (ricerca Nominatim), aeroporto di partenza, orario decollo
+- Gemini genera l'itinerario completo in italiano: eventi con orari realistici, descrizioni dettagliate, colori tema contestuali alla destinazione, valuta corretta, adattamento del primo/ultimo giorno agli orari dei voli
+- Preview del risultato (nome, giorni, attività) prima di salvare
+- La chiave API (Google AI Studio, gratuita) è salvata localmente sul device — mai inviata altrove
+
+### Modifica itinerario con AI
+- Bottone **✦** (sparkles) nel header della schermata Giorni
+- Un singolo campo testo libero: descrivi cosa vuoi cambiare (es. "Sostituisci il giorno 3 con attività per bambini", "Aggiungi una serata a teatro", "Rendi il titolo più evocativo")
+- Gemini riceve l'itinerario completo e applica solo le modifiche richieste
+- Preview con diff: nome nuovo (se cambiato), delta giorni e attività (+/- in verde/rosso)
+- Conferma o annulla prima di salvare
 
 ### Giorni & Itinerario
 - **Visual calendar**: ogni giorno è una card full-width con foto di sfondo personalizzabile e gradiente
@@ -101,6 +116,7 @@ npx tsc --noEmit
 | Navigazione | Expo Router file-based |
 | Storage | `expo-file-system` (locale) + iCloud Backup automatico |
 | Geocoding | Nominatim (OpenStreetMap) |
+| AI itinerari | Google Gemini REST API (`gemini-flash-latest`) — chiave locale, gratuita |
 | Mappe / SVG | `react-native-webview` (WKWebView) |
 | PDF viewer | `react-native-webview` (WKWebView renderizza PDF nativamente su iOS) |
 | PDF import | `expo-document-picker` (Files app picker nativo) |
@@ -120,6 +136,7 @@ I viaggi sono salvati come file JSON sul device. Lo schema è compatibile con qu
 
 ```
 Documents/
+├── ai_settings.json       ← chiave API Gemini (solo locale, mai inviata)
 └── trips/
     └── {tripId}/
         ├── trip.json          ← dati viaggio completi
